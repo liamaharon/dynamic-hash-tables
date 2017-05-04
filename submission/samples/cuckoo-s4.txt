@@ -2,7 +2,7 @@ enter a command (h for help):
 8 inserted
 1 inserted
 5 not found
-8 not found
+8 found
 12 inserted
 4 inserted
 9 inserted
