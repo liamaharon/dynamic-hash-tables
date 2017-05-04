@@ -34,14 +34,14 @@ CuckooHashTable *new_cuckoo_hash_table(int size) {
 	CuckooHashTable *table = malloc(sizeof(*table));
 	assert(table);
 
+	// record size we're making the tables
+	table->size = size;
+
 	// init the two tables
 	table->table1 = malloc((sizeof *table->table1) * size);
 	assert(table->table1);
 	table->table2 = malloc((sizeof *table->table2) * size);
 	assert(table->table2);
-
-	// set size of tables
-	table->size = size;
 
 	// init contents of each table
 	table->table1->inuse = malloc((sizeof *table->table1->inuse) * size);
