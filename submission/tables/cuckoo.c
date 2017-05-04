@@ -3,7 +3,7 @@
  * keys between two tables with two separate hash functions
  *
  * created for COMP20007 Design of Algorithms - Assignment 2, 2017
- * by ...
+ * by Liam Aharon
  */
 
 #include <stdio.h>
@@ -30,8 +30,30 @@ struct cuckoo_table {
 
 // initialise a cuckoo hash table with 'size' slots in each table
 CuckooHashTable *new_cuckoo_hash_table(int size) {
-	fprintf(stderr, "not yet implemented\n");
-	return NULL;
+	// init reference point for the two tables
+	CuckooHashTable *table = malloc(sizeof(*table));
+	assert(table);
+
+	// init the two tables
+	table->table1 = malloc((sizeof *table->table1) * size);
+	assert(table->table1);
+	table->table2 = malloc((sizeof *table->table2) * size);
+	assert(table->table2);
+
+	// set size of tables
+	table->size = size;
+
+	// init contents of each table
+	table->table1->inuse = malloc((sizeof *table->table1->inuse) * size);
+	assert(table->table1->inuse);
+	table->table1->slots = malloc((sizeof *table->table1->slots) * size);
+	assert(table->table1->slots);
+	table->table2->inuse = malloc((sizeof *table->table2->inuse) * size);
+	assert(table->table2->inuse);
+	table->table2->slots = malloc((sizeof *table->table2->slots) * size);
+	assert(table->table2->slots);
+
+	return table;
 }
 
 
@@ -65,7 +87,7 @@ void cuckoo_hash_table_print(CuckooHashTable *table) {
 	// print header
 	printf("                    table one         table two\n");
 	printf("                  key | address     address | key\n");
-	
+
 	// print rows of each table
 	int i;
 	for (i = 0; i < table->size; i++) {
