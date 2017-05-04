@@ -66,7 +66,14 @@ void free_cuckoo_hash_table(CuckooHashTable *table) {
 // insert 'key' into 'table', if it's not in there already
 // returns true if insertion succeeds, false if it was already in there
 bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
-	fprintf(stderr, "not yet implemented\n");
+	assert(table != NULL);
+
+	// need to count our steps to make sure we recognise when the table is full
+	int steps = 0;
+
+	// calculate the address for this key in table 1
+	int hash1 = h1(key) % table->size;
+
 	return false;
 }
 
@@ -74,7 +81,27 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 // lookup whether 'key' is inside 'table'
 // returns true if found, false if not
 bool cuckoo_hash_table_lookup(CuckooHashTable *table, int64 key) {
-	fprintf(stderr, "not yet implemented\n");
+	assert(table != NULL);
+
+	// calculate the address for this key in table 1
+	int h = h1(key) % table->size;
+
+	// check if key in table 1
+	if (table->table1->inuse[h] == key) {
+		return true;
+	}
+
+	// key not in table 1, check if it's in table 2
+
+	// calculate the address for this key in table 2
+	int h = h2(key) % table->size;
+
+	// check if key in table 2
+	if (table->table2->inuse[h] == key) {
+		return true;
+	}
+
+	// key in in neither of the tables
 	return false;
 }
 
