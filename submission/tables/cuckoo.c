@@ -1,10 +1,10 @@
 /* * * * * * * * *
- * Dynamic hash table using cuckoo hashing, resolving collisions by switching
- * keys between two tables with two separate hash functions
- *
- * created for COMP20007 Design of Algorithms - Assignment 2, 2017
- * by Liam Aharon
- */
+* Dynamic hash table using cuckoo hashing, resolving collisions by switching
+* keys between two tables with two separate hash functions
+*
+* created for COMP20007 Design of Algorithms - Assignment 2, 2017
+* by Liam Aharon
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,13 +66,64 @@ void free_cuckoo_hash_table(CuckooHashTable *table) {
 // insert 'key' into 'table', if it's not in there already
 // returns true if insertion succeeds, false if it was already in there
 bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
-	assert(table != NULL);
+	int h;
+	int64 next_key;
+	InnerTable* cur_table;
+	assert(table);
 
-	// need to count our steps to make sure we recognise when the table is full
+	// if key already in table return false
+	if (cuckoo_hash_table_lookup(table, key) == true) {
+		return false;
+	}
+
+	// count steps so we know if table is getting full and need to increase size
 	int steps = 0;
+	int max_steps = (table->size) / 2;
 
-	// calculate the address for this key in table 1
-	int hash1 = h1(key) % table->size;
+	// keep track of which table we're inserting into
+	int cur_table_num = 1;
+
+	// while we have a key to hash keep going!
+	while (key) {
+
+		if (steps >= max_steps) {
+			printf("steps >= max_steps\n");
+		}
+
+		// setup depending on if we're inserting into table 1 or 2
+		if (cur_table_num == 1) {
+			// use table 1
+			cur_table = table->table1;
+			// get hash of our key for table 1
+			h = h1(key) % table->size;
+
+		} else {
+			// use table 2
+			cur_table = table->table2;
+			// get hash of our key for table 2
+			h = h2(key) % table->size;
+		}
+
+		// if destination slot is occupied need save it's val before moving on
+		// so we can rehash it. else set to false so loop breaks
+		if (cur_table->inuse[h]) {
+			next_key = cur_table->slots[h];
+		} else {
+			next_key = false;
+		}
+
+		// insert key into it's desired slot
+		cur_table->slots[h] = key;
+
+		// set key to next key (if any)
+		key = next_key;
+
+		// switch next table to insert into
+		cur_table_num = (cur_table_num == 1) ? 2: 1;
+
+		// increment step counter
+		steps += 1;
+	}
 
 	return false;
 }
@@ -81,23 +132,24 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 // lookup whether 'key' is inside 'table'
 // returns true if found, false if not
 bool cuckoo_hash_table_lookup(CuckooHashTable *table, int64 key) {
-	assert(table != NULL);
+	assert(table);
+	int h;
 
 	// calculate the address for this key in table 1
-	int h = h1(key) % table->size;
+	h = h1(key) % table->size;
 
 	// check if key in table 1
-	if (table->table1->inuse[h] == key) {
+	if (table->table1->slots[h] == key) {
 		return true;
 	}
 
 	// key not in table 1, check if it's in table 2
 
 	// calculate the address for this key in table 2
-	int h = h2(key) % table->size;
+	h = h2(key) % table->size;
 
 	// check if key in table 2
-	if (table->table2->inuse[h] == key) {
+	if (table->table2->slots[h] == key) {
 		return true;
 	}
 
