@@ -34,7 +34,7 @@ CuckooHashTable *new_cuckoo_hash_table(int size) {
 	CuckooHashTable *table = malloc(sizeof(*table));
 	assert(table);
 
-	// record size we're making the tables
+	// record size we're making tables
 	table->size = size;
 
 	// init the two tables
@@ -85,9 +85,10 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 
 	// while we have a key to hash keep going!
 	while (key) {
-
+		// if table too big need to double the size
 		if (steps >= max_steps) {
-			printf("steps >= max_steps\n");
+			double_table(table);
+			max_steps = (table->size) / 2;
 		}
 
 		// setup depending on if we're inserting into table 1 or 2
@@ -113,7 +114,6 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 		} else {
 			cur_table->inuse[h] = true;
 			next_key = false;
-
 		}
 
 		// insert key into it's desired slot
@@ -128,10 +128,29 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 		// increment step counter
 		steps += 1;
 	}
-
+	// finished inserting, return!
 	return true;
 }
 
+// double the size of tables within table, rehashing everything
+void double_table(CuckooHashTable *table) {
+	CuckooHashTable *old_table = table;
+	int old_size = table->size;
+
+	table = new_cuckoo_hash_table(table->size * 2);
+
+	int i;
+	// insert everything from old table 1 into new table
+	for (i = 0; i < old_size; i++) {
+		if (old_table->table1->inuse[i] == true) {
+			cuckoo_hash_table_insert(table, old_table->table1->slots[i]);
+		}
+		if (old_table->table2->inuse[i] == true) {
+			cuckoo_hash_table_insert(table, old_table->table2->slots[i]);
+		}
+	}
+	// free_cuckoo_hash_table(old_table);
+}
 
 // lookup whether 'key' is inside 'table'
 // returns true if found, false if not
@@ -147,8 +166,6 @@ bool cuckoo_hash_table_lookup(CuckooHashTable *table, int64 key) {
 		return true;
 	}
 
-	// key not in table 1, check if it's in table 2
-
 	// calculate the address for this key in table 2
 	h = h2(key) % table->size;
 
@@ -157,7 +174,7 @@ bool cuckoo_hash_table_lookup(CuckooHashTable *table, int64 key) {
 		return true;
 	}
 
-	// key in in neither of the tables
+	// key is in neither of the tables
 	return false;
 }
 

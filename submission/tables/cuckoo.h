@@ -34,4 +34,7 @@ void cuckoo_hash_table_print(CuckooHashTable *table);
 // print some statistics about 'table' to stdout
 void cuckoo_hash_table_stats(CuckooHashTable *table);
 
+// double the size of a CuckooHashTable
+void double_table(CuckooHashTable *table);
+
 #endif
