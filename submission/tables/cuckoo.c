@@ -76,7 +76,7 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 		return false;
 	}
 
-	// count steps so we know if table is getting full and need to increase size
+	// count steps so we know when need to increase table size
 	int steps = 0;
 	int max_steps = (table->size) / 2;
 
@@ -104,12 +104,16 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 			h = h2(key) % table->size;
 		}
 
+		printf("slot size: %d\n", h);
+
 		// if destination slot is occupied need save it's val before moving on
 		// so we can rehash it. else set to false so loop breaks
 		if (cur_table->inuse[h]) {
 			next_key = cur_table->slots[h];
 		} else {
+			cur_table->inuse[h] = true;
 			next_key = false;
+
 		}
 
 		// insert key into it's desired slot
@@ -125,7 +129,7 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 		steps += 1;
 	}
 
-	return false;
+	return true;
 }
 
 
