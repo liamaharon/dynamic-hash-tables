@@ -128,7 +128,8 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 		}
 
 		// if destination slot is occupied need save it's val before moving on
-		// so we can rehash it. else set to false so loop breaks
+		// so we can rehash it. else prepare loop to break and cur_table to
+		// get the empty slot occupied
 		if (cur_table->inuse[h]) {
 			next_key = cur_table->slots[h];
 		} else {
