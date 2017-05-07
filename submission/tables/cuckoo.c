@@ -252,10 +252,11 @@ void cuckoo_hash_table_stats(CuckooHashTable *table) {
 	printf("--- table stats ---\n");
 
 	// print some information about the table
-	// printf("current size: %d slots\n", table->size);
-	// printf("current load: %d items\n", table->load);
-	// printf(" load factor: %.3f%%\n", table->load * 100.0 / table->size);
-	// printf("   step size: %d slots\n", STEP_SIZE);
-	//
-	// printf("--- end stats ---\n");
+	printf("current size: %d slots\n", table->size);
+	printf("table1 current load: %d items\n", table->table1->load);
+	printf(" table1 load factor: %.3f%%\n", table->table1->load * 100.0 / table->size);
+	printf("current table2 load: %d items\n", table->table2->load);
+	printf(" table2 load factor: %.3f%%\n", table->table2->load * 100.0 / table->size);
+
+	printf("--- end stats ---\n");
 }
