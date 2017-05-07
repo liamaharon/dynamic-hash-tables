@@ -66,10 +66,10 @@ void free_cuckoo_hash_table(CuckooHashTable *table) {
 // insert 'key' into 'table', if it's not in there already
 // returns true if insertion succeeds, false if it was already in there
 bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
+	assert(table);
 	int h;
 	int64 next_key;
 	InnerTable* cur_table;
-	assert(table);
 
 	// if key already in table return false
 	if (cuckoo_hash_table_lookup(table, key) == true) {
@@ -97,15 +97,12 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 			cur_table = table->table1;
 			// get hash of our key for table 1
 			h = h1(key) % table->size;
-
 		} else {
 			// use table 2
 			cur_table = table->table2;
 			// get hash of our key for table 2
 			h = h2(key) % table->size;
 		}
-
-		printf("slot size: %d\n", h);
 
 		// if destination slot is occupied need save it's val before moving on
 		// so we can rehash it. else set to false so loop breaks
@@ -134,22 +131,34 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 
 // double the size of tables within table, rehashing everything
 void double_table(CuckooHashTable *table) {
-	CuckooHashTable *old_table = table;
+	// save copy of old data
+	InnerTable *old_table1 = table->table1;
+	InnerTable *old_table2 = table->table2;
 	int old_size = table->size;
 
-	table = new_cuckoo_hash_table(table->size * 2);
+	// update table size
+	table->size = (table->size) * 2;
+
+	// create new tables and attach them to table
+	InnerTable *table1 = malloc((sizeof *table1) * table->size);
+	InnerTable *table2 = malloc((sizeof *table2) * table->size);
+	table->table1 = table1;
+	table->table2 = table2;
+
 
 	int i;
-	// insert everything from old table 1 into new table
+	// insert everything from old tables into new table
 	for (i = 0; i < old_size; i++) {
-		if (old_table->table1->inuse[i] == true) {
-			cuckoo_hash_table_insert(table, old_table->table1->slots[i]);
+		if (old_table1->inuse[i] == true) {
+			cuckoo_hash_table_insert(table, old_table1->slots[i]);
 		}
-		if (old_table->table2->inuse[i] == true) {
-			cuckoo_hash_table_insert(table, old_table->table2->slots[i]);
+		if (old_table2->inuse[i] == true) {
+			cuckoo_hash_table_insert(table, old_table2->slots[i]);
 		}
 	}
-	// free_cuckoo_hash_table(old_table);
+
+	free(old_table1);
+	free(old_table2);
 }
 
 // lookup whether 'key' is inside 'table'
