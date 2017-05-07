@@ -133,12 +133,12 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 			next_key = cur_table->slots[h];
 		} else {
 			cur_table->inuse[h] = true;
+			cur_table->load += 1;
 			next_key = false;
 		}
 
 		// insert key into it's desired slot, increment load
 		cur_table->slots[h] = key;
-		cur_table->load += 1;
 
 		// set key to next key (if any)
 		key = next_key;
