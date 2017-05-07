@@ -66,15 +66,17 @@ InnerTable *new_inner_table(int size) {
 void free_cuckoo_hash_table(CuckooHashTable *table) {
 	assert(table);
 
-	free(table->table1->slots);
-	free(table->table1->inuse);
-	free(table->table2->slots);
-	free(table->table2->inuse);
-
-	free(table->table1);
-	free(table->table2);
+	free_inner_table(table->table1);
+	free_inner_table(table->table2);
 
 	free(table);
+}
+
+// free all memory associated with 'inner_table'
+void free_inner_table(InnerTable *inner_table) {
+	free(inner_table->slots);
+	free(inner_table->inuse);
+	free(inner_table);
 }
 
 
@@ -179,8 +181,8 @@ void double_table(CuckooHashTable *table) {
 			cuckoo_hash_table_insert(table, old_table2->slots[i]);
 		}
 	}
-	free(old_table1);
-	free(old_table2);
+	free_inner_table(old_table1);
+	free_inner_table(old_table2);
 }
 
 // lookup whether 'key' is inside 'table'

@@ -24,6 +24,9 @@ InnerTable *new_inner_table(int size);
 // free all memory associated with 'table'
 void free_cuckoo_hash_table(CuckooHashTable *table);
 
+// free all memory associated with 'inner_table'
+void free_inner_table(InnerTable *inner_table);
+
 // insert 'key' into 'table', if it's not in there already
 // returns true if insertion succeeds, false if it was already in there
 bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key);
