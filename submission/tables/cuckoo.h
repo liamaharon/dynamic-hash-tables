@@ -17,6 +17,8 @@ typedef struct cuckoo_table CuckooHashTable;
 // initialise a cuckoo hash table with 'size' slots in each table
 CuckooHashTable *new_cuckoo_hash_table(int size);
 
+InnerTable *new_inner_table(int size);
+
 // free all memory associated with 'table'
 void free_cuckoo_hash_table(CuckooHashTable *table);
 
