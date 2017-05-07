@@ -44,6 +44,7 @@ CuckooHashTable *new_cuckoo_hash_table(int size) {
 	return table;
 }
 
+// init a new inner_table of size n
 InnerTable *new_inner_table(int size) {
 	// init new InnerTable
 	InnerTable *inner_table = malloc((sizeof *inner_table) * size);
@@ -61,7 +62,17 @@ InnerTable *new_inner_table(int size) {
 
 // free all memory associated with 'table'
 void free_cuckoo_hash_table(CuckooHashTable *table) {
-	fprintf(stderr, "not yet implemented\n");
+	assert(table);
+
+	free(table->table1->slots);
+	free(table->table1->inuse);
+	free(table->table2->slots);
+	free(table->table2->inuse);
+
+	free(table->table1);
+	free(table->table2);
+
+	free(table);
 }
 
 
