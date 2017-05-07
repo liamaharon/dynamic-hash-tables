@@ -38,22 +38,24 @@ CuckooHashTable *new_cuckoo_hash_table(int size) {
 	table->size = size;
 
 	// init the two tables
-	table->table1 = malloc((sizeof *table->table1) * size);
-	assert(table->table1);
-	table->table2 = malloc((sizeof *table->table2) * size);
-	assert(table->table2);
-
-	// init contents of each table
-	table->table1->inuse = malloc((sizeof *table->table1->inuse) * size);
-	assert(table->table1->inuse);
-	table->table1->slots = malloc((sizeof *table->table1->slots) * size);
-	assert(table->table1->slots);
-	table->table2->inuse = malloc((sizeof *table->table2->inuse) * size);
-	assert(table->table2->inuse);
-	table->table2->slots = malloc((sizeof *table->table2->slots) * size);
-	assert(table->table2->slots);
+	table->table1 = new_inner_table(table->size);
+	table->table2 = new_inner_table(table->size);
 
 	return table;
+}
+
+InnerTable *new_inner_table(int size) {
+	// init new InnerTable
+	InnerTable *inner_table = malloc((sizeof *inner_table) * size);
+	assert(inner_table);
+
+	// init inuse and slots
+	inner_table->inuse = malloc((sizeof *inner_table->inuse) * size);
+	assert(inner_table->inuse);
+	inner_table->slots = malloc((sizeof *inner_table->slots) * size);
+	assert(inner_table->slots);
+
+	return inner_table;
 }
 
 
@@ -88,6 +90,7 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 		// if table too big need to double the size
 		if (steps >= max_steps) {
 			double_table(table);
+			printf("Finished doubling table\n");
 			max_steps = (table->size) / 2;
 		}
 
@@ -144,13 +147,16 @@ void double_table(CuckooHashTable *table) {
 	InnerTable *table2 = malloc((sizeof *table2) * table->size);
 	table->table1 = table1;
 	table->table2 = table2;
+	printf("first index in new table 1: %d\n", table->table1->slots[0]);
 
 
 	int i;
 	// insert everything from old tables into new table
 	for (i = 0; i < old_size; i++) {
 		if (old_table1->inuse[i] == true) {
+			printf("About to insert into index %d (table1)\n", i);
 			cuckoo_hash_table_insert(table, old_table1->slots[i]);
+			printf("Inserted into table 1");
 		}
 		if (old_table2->inuse[i] == true) {
 			cuckoo_hash_table_insert(table, old_table2->slots[i]);
