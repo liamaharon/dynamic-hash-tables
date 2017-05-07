@@ -18,13 +18,14 @@
 typedef struct inner_table {
 	int64 *slots;	// array of slots holding keys
 	bool  *inuse;	// is this slot in use or not?
+	int load;		// number of keys in the table right now
 } InnerTable;
 
 // a cuckoo hash table stores its keys in two inner tables
 struct cuckoo_table {
 	InnerTable *table1; // first table
 	InnerTable *table2; // second table
-	int size;			// size of each table
+	int size;			// size of the inner tables
 };
 
 
@@ -49,12 +50,13 @@ InnerTable *new_inner_table(int size) {
 	// init new InnerTable
 	InnerTable *inner_table = malloc((sizeof *inner_table) * size);
 	assert(inner_table);
+	inner_table->load = 0;
 
-	// init inuse and slots
-	inner_table->inuse = malloc((sizeof *inner_table->inuse) * size);
-	assert(inner_table->inuse);
+	// init inuse and slots. calloc inuse to set everything to 0 initially.
 	inner_table->slots = malloc((sizeof *inner_table->slots) * size);
 	assert(inner_table->slots);
+	inner_table->inuse = calloc(sizeof *inner_table->inuse, size);
+	assert(inner_table->inuse);
 
 	return inner_table;
 }
@@ -97,11 +99,18 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 	int cur_table_num = 1;
 
 	// while we have a key to hash keep going!
+	// printf("Start loop\n");
 	while (key) {
+		// printf("inserting: %d cur_table_num: %d\n", key, cur_table_num);
 		// if table too big need to double the size and keep going
 		if (steps >= max_steps) {
+			// setup new table
 			double_table(table);
+			// printf("Table size doubled\n");
 			max_steps = (table->size) / 2;
+
+			// begin insersion on table 1
+			cur_table_num = 1;
 		}
 
 		// setup depending on if we're inserting into table 1 or 2
@@ -126,9 +135,11 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 			next_key = false;
 		}
 
-		// insert key into it's desired slot
+		// insert key into it's desired slot, increment load
 		cur_table->slots[h] = key;
+		cur_table->load += 1;
 
+		// cuckoo_hash_table_print(table);
 		// set key to next key (if any)
 		key = next_key;
 
@@ -144,6 +155,7 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 
 // double the size of tables within table, rehashing everything
 void double_table(CuckooHashTable *table) {
+	assert(table);
 	// save copy of old data
 	InnerTable *old_table1 = table->table1;
 	InnerTable *old_table2 = table->table2;
@@ -151,6 +163,7 @@ void double_table(CuckooHashTable *table) {
 
 	// update table size
 	table->size = (table->size) * 2;
+	assert(table->size <= MAX_TABLE_SIZE);
 
 	// give table new tables
 	table->table1 = new_inner_table(table->size);
@@ -159,10 +172,10 @@ void double_table(CuckooHashTable *table) {
 	int i;
 	// insert everything from old tables into new table
 	for (i = 0; i < old_size; i++) {
-		if (old_table1->inuse[i] == true) {
+		if (old_table1->inuse[i]) {
 			cuckoo_hash_table_insert(table, old_table1->slots[i]);
 		}
-		if (old_table2->inuse[i] == true) {
+		if (old_table2->inuse[i]) {
 			cuckoo_hash_table_insert(table, old_table2->slots[i]);
 		}
 	}
@@ -235,5 +248,14 @@ void cuckoo_hash_table_print(CuckooHashTable *table) {
 
 // print some statistics about 'table' to stdout
 void cuckoo_hash_table_stats(CuckooHashTable *table) {
-	fprintf(stderr, "not yet implemented\n");
+	assert(table);
+	printf("--- table stats ---\n");
+
+	// print some information about the table
+	// printf("current size: %d slots\n", table->size);
+	// printf("current load: %d items\n", table->load);
+	// printf(" load factor: %.3f%%\n", table->load * 100.0 / table->size);
+	// printf("   step size: %d slots\n", STEP_SIZE);
+	//
+	// printf("--- end stats ---\n");
 }
