@@ -87,10 +87,9 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 
 	// while we have a key to hash keep going!
 	while (key) {
-		// if table too big need to double the size
+		// if table too big need to double the size and keep going
 		if (steps >= max_steps) {
 			double_table(table);
-			printf("Finished doubling table\n");
 			max_steps = (table->size) / 2;
 		}
 
@@ -142,27 +141,20 @@ void double_table(CuckooHashTable *table) {
 	// update table size
 	table->size = (table->size) * 2;
 
-	// create new tables and attach them to table
-	InnerTable *table1 = malloc((sizeof *table1) * table->size);
-	InnerTable *table2 = malloc((sizeof *table2) * table->size);
-	table->table1 = table1;
-	table->table2 = table2;
-	printf("first index in new table 1: %d\n", table->table1->slots[0]);
-
+	// give table new tables
+	table->table1 = new_inner_table(table->size);
+	table->table2 = new_inner_table(table->size);
 
 	int i;
 	// insert everything from old tables into new table
 	for (i = 0; i < old_size; i++) {
 		if (old_table1->inuse[i] == true) {
-			printf("About to insert into index %d (table1)\n", i);
 			cuckoo_hash_table_insert(table, old_table1->slots[i]);
-			printf("Inserted into table 1");
 		}
 		if (old_table2->inuse[i] == true) {
 			cuckoo_hash_table_insert(table, old_table2->slots[i]);
 		}
 	}
-
 	free(old_table1);
 	free(old_table2);
 }

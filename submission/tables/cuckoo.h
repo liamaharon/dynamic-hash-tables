@@ -3,7 +3,7 @@
  * keys between two tables with two separate hash functions
  *
  * created for COMP20007 Design of Algorithms - Assignment 2, 2017
- * by ...
+ * by Liam Aharon
  */
 
 #ifndef CUCKOO_H
@@ -13,10 +13,12 @@
 #include "../inthash.h"
 
 typedef struct cuckoo_table CuckooHashTable;
+typedef struct inner_table InnerTable;
 
 // initialise a cuckoo hash table with 'size' slots in each table
 CuckooHashTable *new_cuckoo_hash_table(int size);
 
+// init a new inner_table of size n
 InnerTable *new_inner_table(int size);
 
 // free all memory associated with 'table'
