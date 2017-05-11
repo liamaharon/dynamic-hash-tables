@@ -9,8 +9,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <time.h>
 
 #include "xtndbln.h"
+
+// macro to calculate the rightmost n bits of a number x
+#define rightmostnbits(n, x) (x) & ((1 << (n)) - 1)
 
 // a bucket stores an array of keys
 // it also knows how many bits are shared between possible keys, and the first
@@ -88,7 +92,7 @@ struct xtndbln_table {
 // need to set this up eventually, changing lsat bit where keys is reinserted
 // to reinsert every key from that bucket
  // split the bucket in 'table' at address 'address', growing table if necessary
- // static void split_bucket(Xtndbl1HashTable *table, int address) {
+ static void split_bucket(XtndblNHashTable *table, int address) {
  //
  // 	// FIRST,
  // 	// do we need to grow the table?
@@ -145,7 +149,7 @@ struct xtndbln_table {
  // 	int64 key = bucket->key;
  // 	bucket->full = false;
  // 	reinsert_key(table, key);
- // }
+ }
 
  /* * * *
   * all functions
@@ -177,7 +181,7 @@ void free_xtndbln_hash_table(XtndblNHashTable *table) {
 // returns true if insertion succeeds, false if it was already in there
 bool xtndbln_hash_table_insert(XtndblNHashTable *table, int64 key) {
 	assert(table);
-	int start_time = clock(); // start timing
+	// int start_time = clock(); // start timing
 
 	// calculate table address
 	int hash = h1(key);
@@ -198,8 +202,8 @@ bool xtndbln_hash_table_insert(XtndblNHashTable *table, int64 key) {
 
 	// there's now space! we can insert this key at the next avaliable position
 	// in the bucket
-	table->buckets[address]->keys[nkeys] = key;
-	table->buckets[address]->nkeys += 1;
+	int nkeys = table->buckets[address]->nkeys += 1;
+	table->buckets[address]->keys[nkeys-1] = key;
 
 	return true;
 }
@@ -208,7 +212,23 @@ bool xtndbln_hash_table_insert(XtndblNHashTable *table, int64 key) {
 // lookup whether 'key' is inside 'table'
 // returns true if found, false if not
 bool xtndbln_hash_table_lookup(XtndblNHashTable *table, int64 key) {
-	fprintf(stderr, "not yet implemented\n");
+	assert(table);
+	int i;
+
+	// int start_time = clock(); // start timing
+
+	// calculate table address for this key
+	int address = rightmostnbits(table->depth, h1(key));
+
+	// check if destination bucket is occupied
+	if (table->buckets[address]->nkeys > 0) {
+		// search bucket
+		for (i=0; i<table->buckets[address]->nkeys; i++) {
+			// if found return true
+			if (table->buckets[address]->keys[i] == key) return true;
+		}
+	}
+	// not found, return false
 	return false;
 }
 
