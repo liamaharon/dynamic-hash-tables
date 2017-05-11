@@ -3,7 +3,7 @@
  * resolving collisions by incrementally growing the hash table
  *
  * created for COMP20007 Design of Algorithms - Assignment 2, 2017
- * by ...
+ * by Liam Aharon
  */
 
 #ifndef XTNDBLN_H
