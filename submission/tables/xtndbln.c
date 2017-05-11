@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <time.h>
+#include <string.h>
 
 #include "xtndbln.h"
 
@@ -104,7 +105,9 @@ static void split_bucket(XtndblNHashTable *table, int address) {
 	// do we need to grow the table?
 	if (table->buckets[address]->depth == table->depth) {
 		// yep, this bucket is down to its last pointer
+		printf("Doubling table\n");
 		double_table(table);
+		printf("Table doubled\n");
 	}
 	// either way, now it's time to split this bucket
 
@@ -150,12 +153,18 @@ static void split_bucket(XtndblNHashTable *table, int address) {
 	// filter the keys from the old bucket into their rightful place in the new
 	// table (which may be the old bucket, or may be the new bucket)
 
-	// remove and reinsert the keys
+	// make a copy of the keys
+	int64 *tmp_keys = malloc((sizeof *tmp_keys) * bucket->nkeys);
+	memcpy(tmp_keys, bucket->keys, bucket->nkeys * sizeof(int64));
+	int nkeys = bucket->nkeys;
+
+	// set bucket as empty
+	bucket->nkeys = 0;
+
+	// reinsert the keys into the table
 	int i;
-	for (i=bucket->nkeys-1; i>=0; i--) {
-		int64 key = bucket->keys[i];
-		bucket->nkeys -= 1;
-		reinsert_key(table, key);
+	for (i=0; i<nkeys; i++) {
+		reinsert_key(table, tmp_keys[i]);
 	}
 }
 
@@ -183,7 +192,17 @@ XtndblNHashTable *new_xtndbln_hash_table(int bucketsize) {
 
 // free all memory associated with 'table'
 void free_xtndbln_hash_table(XtndblNHashTable *table) {
-	fprintf(stderr, "not yet implemented\n");
+	assert(table);
+	Bucket *bucket;
+
+	// free buckets
+	int i;
+	for (i=0; i<table->size; i++) {
+		bucket = table->buckets[i];
+		free(bucket->keys);
+		free(bucket);
+	}
+	free(table);
 }
 
 
@@ -204,8 +223,9 @@ bool xtndbln_hash_table_insert(XtndblNHashTable *table, int64 key) {
 
 	// if not, make space in the table until our target bucket has space
 	while (table->buckets[address]->nkeys == table->bucketsize) {
+		printf("Splitting bucket\n");
 		split_bucket(table, address);
-
+		printf("Bucket split\n");
 		// recalculate address because we might now need more bits
 		address = rightmostnbits(table->depth, hash);
 	}
