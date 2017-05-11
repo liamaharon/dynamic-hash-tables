@@ -153,8 +153,17 @@ struct xtndbln_table {
 
 // initialise an extendible hash table with 'bucketsize' keys per bucket
 XtndblNHashTable *new_xtndbln_hash_table(int bucketsize) {
-	fprintf(stderr, "not yet implemented\n");
-	return NULL;
+	XtndblNHashTable *table = malloc(sizeof *table);
+	assert(table);
+
+	table->size = 1;
+	table->buckets = malloc(sizeof *table->buckets);
+	assert(table->buckets);
+	table->buckets[0] = new_bucket(0, 0, bucketsize);
+
+	table->depth = 0
+
+	return table;
 }
 
 
