@@ -3,7 +3,7 @@
  * resolving collisions by incrementally growing the hash table
  *
  * created for COMP20007 Design of Algorithms - Assignment 2, 2017
- * by ...
+ * by Liam Aharon
  */
 
 #include <stdio.h>
@@ -13,7 +13,7 @@
 #include "xtndbln.h"
 
 // a bucket stores an array of keys
-// it also knows how many bits are shared between possible keys, and the first 
+// it also knows how many bits are shared between possible keys, and the first
 // table address that references it
 typedef struct xtndbln_bucket {
 	int id;			// a unique id for this bucket, equal to the first address
@@ -23,8 +23,8 @@ typedef struct xtndbln_bucket {
 	int64 *keys;	// the keys stored in this bucket
 } Bucket;
 
-// a hash table is an array of slots pointing to buckets holding up to 
-// bucketsize keys, along with some information about the number of hash value 
+// a hash table is an array of slots pointing to buckets holding up to
+// bucketsize keys, along with some information about the number of hash value
 // bits to use for addressing
 struct xtndbln_table {
 	Bucket **buckets;	// array of pointers to buckets
@@ -32,6 +32,27 @@ struct xtndbln_table {
 	int depth;			// how many bits of the hash value to use (log2(size))
 	int bucketsize;		// maximum number of keys per bucket
 };
+
+/* * * *
+ * helper functions
+ */
+
+ // create a new bucket first referenced from 'first_address', based on 'depth'
+ // bits of its keys' hash values
+ static Bucket *new_bucket(int first_address, int depth, int size) {
+ 	Bucket *bucket = malloc(sizeof *bucket);
+ 	assert(bucket);
+
+	// setup array of keys
+	Bucket *bucket->keys = malloc((sizeof *bucket->keys) * size);
+	assert(bucket->keys);
+	bucket->nkeys = 0;
+
+	bucket->id = first_address;
+	bucket->depth = depth;
+
+	return bucket;
+ }
 
 
 // initialise an extendible hash table with 'bucketsize' keys per bucket
@@ -71,7 +92,7 @@ void xtndbln_hash_table_print(XtndblNHashTable *table) {
 	// print header
 	printf("  table:               buckets:\n");
 	printf("  address | bucketid   bucketid [key]\n");
-	
+
 	// print table and buckets
 	int i;
 	for (i = 0; i < table->size; i++) {
