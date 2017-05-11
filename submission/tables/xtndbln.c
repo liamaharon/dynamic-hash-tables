@@ -176,8 +176,32 @@ void free_xtndbln_hash_table(XtndblNHashTable *table) {
 // insert 'key' into 'table', if it's not in there already
 // returns true if insertion succeeds, false if it was already in there
 bool xtndbln_hash_table_insert(XtndblNHashTable *table, int64 key) {
-	fprintf(stderr, "not yet implemented\n");
-	return false;
+	assert(table);
+	int start_time = clock(); // start timing
+
+	// calculate table address
+	int hash = h1(key);
+	int address = rightmostnbits(table->depth, hash);
+
+	// check if key already in table
+	if (xtndbln_hash_table_lookup(table, key) == true) {
+		return false;
+	};
+
+	// if not, make space in the table until our target bucket has space
+	while (table->buckets[address]->nkeys == table->bucketsize) {
+		split_bucket(table, address);
+
+		// recalculate address because we might now need more bits
+		address = rightmostnbits(table->depth, hash);
+	}
+
+	// there's now space! we can insert this key at the next avaliable position
+	// in the bucket
+	table->buckets[address]->keys[nkeys] = key;
+	table->buckets[address]->nkeys += 1;
+
+	return true;
 }
 
 
