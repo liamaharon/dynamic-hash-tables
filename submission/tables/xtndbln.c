@@ -61,22 +61,22 @@ struct xtndbln_table {
 // set this up after getting table initialised
  // double the table of bucket pointers, duplicating the bucket pointers in the
  // first half into the new second half of the table
- // static void double_table(Xtndbl1HashTable *table) {
- // 	int size = table->size * 2;
- // 	assert(size < MAX_TABLE_SIZE && "error: table has grown too large!");
- //
- // 	// get a new array of twice as many bucket pointers, and copy pointers down
- // 	table->buckets = realloc(table->buckets, (sizeof *table->buckets) * size);
- // 	assert(table->buckets);
- // 	int i;
- // 	for (i = 0; i < table->size; i++) {
- // 		table->buckets[table->size + i] = table->buckets[i];
- // 	}
- //
- // 	// finally, increase the table size and the depth we are using to hash keys
- // 	table->size = size;
- // 	table->depth++;
- // }
+static void double_table(Xtndbl1HashTable *table) {
+	assert(size < MAX_TABLE_SIZE && "error: table has grown too large!");
+	int size = table->size * 2;
+
+	// get a new array of twice as many bucket pointers, and copy pointers down
+	table->buckets = realloc(table->buckets, (sizeof *table->buckets) * size);
+	assert(table->buckets);
+	int i;
+	for (i = 0; i < table->size; i++) {
+		table->buckets[table->size + i] = table->buckets[i];
+	}
+
+	// finally, increase the table size and the depth we are using to hash keys
+	table->size = size;
+	table->depth++;
+}
 
 // need to set this up, searching down the array for a place to store the key
  // reinsert a key into the hash table after splitting a bucket --- we can assume
