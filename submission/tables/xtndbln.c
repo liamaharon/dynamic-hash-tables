@@ -105,9 +105,7 @@ static void split_bucket(XtndblNHashTable *table, int address) {
 	// do we need to grow the table?
 	if (table->buckets[address]->depth == table->depth) {
 		// yep, this bucket is down to its last pointer
-		printf("Doubling table\n");
 		double_table(table);
-		printf("Table doubled\n");
 	}
 	// either way, now it's time to split this bucket
 
@@ -166,6 +164,7 @@ static void split_bucket(XtndblNHashTable *table, int address) {
 	for (i=0; i<nkeys; i++) {
 		reinsert_key(table, tmp_keys[i]);
 	}
+	free(tmp_keys);
 }
 
  /* * * *
@@ -178,7 +177,7 @@ XtndblNHashTable *new_xtndbln_hash_table(int bucketsize) {
 	assert(table);
 
 	table->size = 1;
-	table->buckets = malloc(sizeof *table->buckets);
+	table->buckets = malloc((sizeof *table->buckets) * table->size);
 	assert(table->buckets);
 	table->buckets[0] = new_bucket(0, 0, bucketsize);
 
@@ -193,15 +192,22 @@ XtndblNHashTable *new_xtndbln_hash_table(int bucketsize) {
 // free all memory associated with 'table'
 void free_xtndbln_hash_table(XtndblNHashTable *table) {
 	assert(table);
-	Bucket *bucket;
 
-	// free buckets
+	// loop backwards through the array of pointers, freeing buckets only as we
+	// reach their first reference
+	// (if we loop through forwards, we wouldn't know which reference was last)
 	int i;
-	for (i=0; i<table->size; i++) {
-		bucket = table->buckets[i];
-		free(bucket->keys);
-		free(bucket);
+	for (i = table->size-1; i >= 0; i--) {
+		if (table->buckets[i]->id == i) {
+			free(table->buckets[i]->keys);
+			free(table->buckets[i]);
+		}
 	}
+
+	// free the array of bucket pointers
+	free(table->buckets);
+
+	// free the table struct itself
 	free(table);
 }
 
@@ -223,9 +229,7 @@ bool xtndbln_hash_table_insert(XtndblNHashTable *table, int64 key) {
 
 	// if not, make space in the table until our target bucket has space
 	while (table->buckets[address]->nkeys == table->bucketsize) {
-		printf("Splitting bucket\n");
 		split_bucket(table, address);
-		printf("Bucket split\n");
 		// recalculate address because we might now need more bits
 		address = rightmostnbits(table->depth, hash);
 	}
