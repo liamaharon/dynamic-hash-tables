@@ -48,6 +48,19 @@ struct xuckoo_table {
  * helper functions
  */
 
+ // create a new bucket first referenced from 'first_address', based on 'depth'
+ // bits of its keys' hash values
+Bucket *new_bucket(int first_address, int depth) {
+	Bucket *bucket = malloc(sizeof *bucket);
+	assert(bucket);
+
+	bucket->id = first_address;
+	bucket->depth = depth;
+	bucket->full = false;
+
+	return bucket;
+}
+
 // init a new inner_table
 InnerTable *new_inner_table() {
 	// init new InnerTable
