@@ -1,7 +1,7 @@
 /* * * * * * * * *
 * Dynamic hash table using a combination of extendible hashing and cuckoo
-* hashing with a single keys per bucket, resolving collisions by switching keys 
-* between two tables with two separate hash functions and growing the tables 
+* hashing with a single keys per bucket, resolving collisions by switching keys
+* between two tables with two separate hash functions and growing the tables
 * incrementally in response to cycles
 *
 * created for COMP20007 Design of Algorithms - Assignment 2, 2017
@@ -14,8 +14,11 @@
 
 #include "xuckoo.h"
 
+// macro to calculate the rightmost n bits of a number x
+#define rightmostnbits(n, x) (x) & ((1 << (n)) - 1)
+
 // a bucket stores a single key (full=true) or is empty (full=false)
-// it also knows how many bits are shared between possible keys, and the first 
+// it also knows how many bits are shared between possible keys, and the first
 // table address that references it
 typedef struct bucket {
 	int id;		// a unique id for this bucket, equal to the first address
@@ -25,8 +28,8 @@ typedef struct bucket {
 	int64 key;	// the key stored in this bucket
 } Bucket;
 
-// an inner table is an extendible hash table with an array of slots pointing 
-// to buckets holding up to 1 key, along with some information about the number 
+// an inner table is an extendible hash table with an array of slots pointing
+// to buckets holding up to 1 key, along with some information about the number
 // of hash value bits to use for addressing
 typedef struct inner_table {
 	Bucket **buckets;	// array of pointers to buckets
@@ -43,8 +46,15 @@ struct xuckoo_table {
 
 // initialise an extendible cuckoo hash table
 XuckooHashTable *new_xuckoo_hash_table() {
-	fprintf(stderr, "not yet implemented\n");
-	return NULL;
+	// create new table
+	XuckooHashTable *table = malloc(sizeof *table);
+	assert(table);
+
+	// create new inner tables
+	table->table1 = new_inner_table();
+	table->table2 = new_inner_table();
+
+	return table;
 }
 
 
@@ -85,7 +95,7 @@ void xuckoo_hash_table_print(XuckooHashTable *table) {
 
 		printf("  table:               buckets:\n");
 		printf("  address | bucketid   bucketid [key]\n");
-		
+
 		// print table and buckets
 		int i;
 		for (i = 0; i < innertables[t]->size; i++) {
