@@ -54,6 +54,102 @@ struct xtndbln_table {
 	return bucket;
  }
 
+// set this up after getting table initialised
+ // double the table of bucket pointers, duplicating the bucket pointers in the
+ // first half into the new second half of the table
+ // static void double_table(Xtndbl1HashTable *table) {
+ // 	int size = table->size * 2;
+ // 	assert(size < MAX_TABLE_SIZE && "error: table has grown too large!");
+ //
+ // 	// get a new array of twice as many bucket pointers, and copy pointers down
+ // 	table->buckets = realloc(table->buckets, (sizeof *table->buckets) * size);
+ // 	assert(table->buckets);
+ // 	int i;
+ // 	for (i = 0; i < table->size; i++) {
+ // 		table->buckets[table->size + i] = table->buckets[i];
+ // 	}
+ //
+ // 	// finally, increase the table size and the depth we are using to hash keys
+ // 	table->size = size;
+ // 	table->depth++;
+ // }
+
+// need to set this up, searching down the array for a place to store the key
+ // reinsert a key into the hash table after splitting a bucket --- we can assume
+ // that there will definitely be space for this key because it was already
+ // inside the hash table previously
+ // use 'xtndbl1_hash_table_insert()' instead for inserting new keys
+ // static void reinsert_key(Xtndbl1HashTable *table, int64 key) {
+ // 	int address = rightmostnbits(table->depth, h1(key));
+ // 	table->buckets[address]->key = key;
+ // 	table->buckets[address]->full = true;
+ // }
+
+// need to set this up eventually, changing lsat bit where keys is reinserted
+// to reinsert every key from that bucket
+ // split the bucket in 'table' at address 'address', growing table if necessary
+ // static void split_bucket(Xtndbl1HashTable *table, int address) {
+ //
+ // 	// FIRST,
+ // 	// do we need to grow the table?
+ // 	if (table->buckets[address]->depth == table->depth) {
+ // 		// yep, this bucket is down to its last pointer
+ // 		double_table(table);
+ // 	}
+ // 	// either way, now it's time to split this bucket
+ //
+ //
+ // 	// SECOND,
+ // 	// create a new bucket and update both buckets' depth
+ // 	Bucket *bucket = table->buckets[address];
+ // 	int depth = bucket->depth;
+ // 	int first_address = bucket->id;
+ //
+ // 	int new_depth = depth + 1;
+ // 	bucket->depth = new_depth;
+ //
+ // 	// new bucket's first address will be a 1 bit plus the old first address
+ // 	int new_first_address = 1 << depth | first_address;
+ // 	Bucket *newbucket = new_bucket(new_first_address, new_depth);
+ // 	table->stats.nbuckets++;
+ //
+ // 	// THIRD,
+ // 	// redirect every second address pointing to this bucket to the new bucket
+ // 	// construct addresses by joining a bit 'prefix' and a bit 'suffix'
+ // 	// (defined below)
+ //
+ // 	// suffix: a 1 bit followed by the previous bucket bit address
+ // 	int bit_address = rightmostnbits(depth, first_address);
+ // 	int suffix = (1 << depth) | bit_address;
+ //
+ // 	// prefix: all bitstrings of length equal to the difference between the new
+ // 	// bucket depth and the table depth
+ // 	// use a for loop to enumerate all possible prefixes less than maxprefix:
+ // 	int maxprefix = 1 << (table->depth - new_depth);
+ //
+ // 	int prefix;
+ // 	for (prefix = 0; prefix < maxprefix; prefix++) {
+ //
+ // 		// construct address by joining this prefix and the suffix
+ // 		int a = (prefix << new_depth) | suffix;
+ //
+ // 		// redirect this table entry to point at the new bucket
+ // 		table->buckets[a] = newbucket;
+ // 	}
+ //
+ // 	// FINALLY,
+ // 	// filter the key from the old bucket into its rightful place in the new
+ // 	// table (which may be the old bucket, or may be the new bucket)
+ //
+ // 	// remove and reinsert the key
+ // 	int64 key = bucket->key;
+ // 	bucket->full = false;
+ // 	reinsert_key(table, key);
+ // }
+
+ /* * * *
+  * all functions
+  */
 
 // initialise an extendible hash table with 'bucketsize' keys per bucket
 XtndblNHashTable *new_xtndbln_hash_table(int bucketsize) {
