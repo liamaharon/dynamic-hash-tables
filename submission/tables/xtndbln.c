@@ -61,7 +61,7 @@ struct xtndbln_table {
 // set this up after getting table initialised
  // double the table of bucket pointers, duplicating the bucket pointers in the
  // first half into the new second half of the table
-static void double_table(Xtndbl1HashTable *table) {
+static void double_table(XtndblNHashTable *table) {
 	assert(size < MAX_TABLE_SIZE && "error: table has grown too large!");
 	int size = table->size * 2;
 
@@ -83,7 +83,7 @@ static void double_table(Xtndbl1HashTable *table) {
 // that there will definitely be space for this key because it was already
 // inside the hash table previously
 // use 'xtndbl1_hash_table_insert()' instead for inserting new keys
-static void reinsert_key(Xtndbl1HashTable *table, int64 key) {
+static void reinsert_key(XtndblNHashTable *table, int64 key) {
 	int address = rightmostnbits(table->depth, h1(key));
 
 	// point to insert into
