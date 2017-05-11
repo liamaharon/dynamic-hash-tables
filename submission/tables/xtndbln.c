@@ -79,15 +79,20 @@ static void double_table(Xtndbl1HashTable *table) {
 }
 
 // need to set this up, searching down the array for a place to store the key
- // reinsert a key into the hash table after splitting a bucket --- we can assume
- // that there will definitely be space for this key because it was already
- // inside the hash table previously
- // use 'xtndbl1_hash_table_insert()' instead for inserting new keys
- // static void reinsert_key(Xtndbl1HashTable *table, int64 key) {
- // 	int address = rightmostnbits(table->depth, h1(key));
- // 	table->buckets[address]->key = key;
- // 	table->buckets[address]->full = true;
- // }
+// reinsert a key into the hash table after splitting a bucket --- we can assume
+// that there will definitely be space for this key because it was already
+// inside the hash table previously
+// use 'xtndbl1_hash_table_insert()' instead for inserting new keys
+static void reinsert_key(Xtndbl1HashTable *table, int64 key) {
+	int address = rightmostnbits(table->depth, h1(key));
+
+	// point to insert into
+	int insersion_point = table->buckets[address]->nkeys;
+
+	// insert into next point in bucket
+	table->buckets[address]->keys[insersion_point] = key;
+	table->buckets[address]->nkeys += 1;
+}
 
 // need to set this up eventually, changing lsat bit where keys is reinserted
 // to reinsert every key from that bucket
