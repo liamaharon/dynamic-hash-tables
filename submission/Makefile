@@ -39,7 +39,7 @@ cmdgen.o: inthash.h
 clean:
 	rm -f $(OBJ) cmdgen.o
 clobber: clean
-	rm -f $(EXE) 
+	rm -f $(EXE)
 cleanly: $(EXE) clean
 
 
