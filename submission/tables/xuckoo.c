@@ -44,6 +44,26 @@ struct xuckoo_table {
 	InnerTable *table2;
 };
 
+/* * * *
+ * helper functions
+ */
+
+// init a new inner_table
+InnerTable *new_inner_table() {
+	// init new InnerTable
+	InnerTable *inner_table = malloc((sizeof *inner_table) * size);
+	assert(inner_table);
+
+	inner_table->size = 1;
+	inner_table->buckets = malloc(sizeof *inner_table->buckets);
+	assert(table->buckets);
+	inner_table->buckets[0] = new_bucket(0, 0);
+	inner_table->depth = 0;
+
+	return inner_table;
+ }
+
+
 // initialise an extendible cuckoo hash table
 XuckooHashTable *new_xuckoo_hash_table() {
 	// create new table
@@ -56,6 +76,7 @@ XuckooHashTable *new_xuckoo_hash_table() {
 
 	return table;
 }
+
 
 
 // free all memory associated with 'table'
