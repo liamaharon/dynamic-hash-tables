@@ -39,12 +39,12 @@ struct xtndbln_table {
 
  // create a new bucket first referenced from 'first_address', based on 'depth'
  // bits of its keys' hash values
- static Bucket *new_bucket(int first_address, int depth, int size) {
+ Bucket *new_bucket(int first_address, int depth, int bucketsize) {
  	Bucket *bucket = malloc(sizeof *bucket);
  	assert(bucket);
 
 	// setup array of keys
-	bucket->keys = malloc((sizeof *bucket->keys) * size);
+	bucket->keys = malloc((sizeof *bucket->keys) * bucketsize);
 	assert(bucket->keys);
 	bucket->nkeys = 0;
 
@@ -161,7 +161,7 @@ XtndblNHashTable *new_xtndbln_hash_table(int bucketsize) {
 	assert(table->buckets);
 	table->buckets[0] = new_bucket(0, 0, bucketsize);
 
-	table->depth = 0
+	table->depth = 0;
 
 	return table;
 }
