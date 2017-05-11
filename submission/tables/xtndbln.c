@@ -44,7 +44,7 @@ struct xtndbln_table {
  	assert(bucket);
 
 	// setup array of keys
-	Bucket *bucket->keys = malloc((sizeof *bucket->keys) * size);
+	bucket->keys = malloc((sizeof *bucket->keys) * size);
 	assert(bucket->keys);
 	bucket->nkeys = 0;
 
