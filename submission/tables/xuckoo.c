@@ -182,7 +182,33 @@ XuckooHashTable *new_xuckoo_hash_table() {
 
 // free all memory associated with 'table'
 void free_xuckoo_hash_table(XuckooHashTable *table) {
-	fprintf(stderr, "not yet implemented\n");
+	assert(table);
+
+	free_inner_table(table->table1);
+	free_inner_table(table->table2);
+
+	free(table);
+}
+
+// free all memory associated with the inner table
+void free_inner_table(InnerTable *inner_table) {
+	assert(inner_table);
+
+	// loop backwards through the array of pointers, freeing buckets only as we
+	// reach their first reference
+	// (if we loop through forwards, we wouldn't know which reference was last)
+	int i;
+	for (i = inner_table->size-1; i >= 0; i--) {
+		if (inner_table->buckets[i]->id == i) {
+			free(inner_table->buckets[i]);
+		}
+	}
+
+	// free the array of bucket pointers
+	free(inner_table->buckets);
+
+	// free the table struct itself
+	free(inner_table);
 }
 
 
