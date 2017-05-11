@@ -62,8 +62,8 @@ struct xtndbln_table {
  // double the table of bucket pointers, duplicating the bucket pointers in the
  // first half into the new second half of the table
 static void double_table(XtndblNHashTable *table) {
-	assert(size < MAX_TABLE_SIZE && "error: table has grown too large!");
 	int size = table->size * 2;
+	assert(size < MAX_TABLE_SIZE && "error: table has grown too large!");
 
 	// get a new array of twice as many bucket pointers, and copy pointers down
 	table->buckets = realloc(table->buckets, (sizeof *table->buckets) * size);
@@ -151,10 +151,10 @@ static void split_bucket(XtndblNHashTable *table, int address) {
 	// table (which may be the old bucket, or may be the new bucket)
 
 	// remove and reinsert the keys
-	int index;
-	while (bucket->nkeys > 0) {
-		index = bucket->nkeys -= 1;
-		int64 key = bucket->keys[index];
+	int i;
+	for (i=bucket->nkeys-1; i>=0; i--) {
+		int64 key = bucket->keys[i];
+		bucket->nkeys -= 1;
 		reinsert_key(table, key);
 	}
 }
@@ -174,6 +174,8 @@ XtndblNHashTable *new_xtndbln_hash_table(int bucketsize) {
 	table->buckets[0] = new_bucket(0, 0, bucketsize);
 
 	table->depth = 0;
+
+	table->bucketsize = bucketsize;
 
 	return table;
 }
