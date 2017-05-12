@@ -5,7 +5,7 @@
 * incrementally in response to cycles
 *
 * created for COMP20007 Design of Algorithms - Assignment 2, 2017
-* by ...
+* by Liam Aharon
 */
 
 #include <stdio.h>
@@ -84,14 +84,17 @@ static void double_table(InnerTable *inner_table) {
 // that there will definitely be space for this key because it was already
 // inside the hash table previously
 // use 'xtndbl1_hash_table_insert()' instead for inserting new keys
-static void reinsert_key(InnerTable *inner_table, int64 key) {
-	int address = rightmostnbits(inner_table->depth, h1(key));
+static void reinsert_key(InnerTable *inner_table, int64 key, int cur_table_num) {
+	// use correct hash function depending on which table we're inserting into
+	int hash = (cur_table_num == 1) ? h1(key): h2(key);
+
+	int address = rightmostnbits(inner_table->depth, hash);
 	inner_table->buckets[address]->key = key;
 	inner_table->buckets[address]->full = true;
 }
 
 // split the bucket in 'table' at address 'address', growing table if necessary
-static void split_bucket(InnerTable *inner_table, int address) {
+static void split_bucket(InnerTable *inner_table, int address, int cur_table_num) {
 
 	// FIRST,
 	// do we need to grow the table?
@@ -146,7 +149,8 @@ static void split_bucket(InnerTable *inner_table, int address) {
 	// remove and reinsert the key
 	int64 key = bucket->key;
 	bucket->full = false;
-	reinsert_key(inner_table, key);
+	printf("Reinserting %llu due to split\n", key);
+	reinsert_key(inner_table, key, cur_table_num);
 }
 
 // init a new inner_table
@@ -243,6 +247,7 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 
 	InnerTable *cur_table;
 	while (key) {
+		printf("About to try to insert %llu\n", key);
 		// setup values for current iteration
 		if (cur_table_num == 1) {
 			cur_table = table->table1;
@@ -255,17 +260,19 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 
 		// if been cuckooing too long need to split bucket, potentially
 		// doubling table size
-		if (steps >= max_steps) {
-			split_bucket(cur_table, address);
+		if (steps >= max_steps && cur_table->buckets[address]->full) {
+			split_bucket(cur_table, address, cur_table_num);
+			printf("Just split bucket\n");
+			xuckoo_hash_table_print(table);
 			max_steps = (table->table1->size + table->table2->size) / 2;
 		}
 
 		// if destination slot is occupied need save it's val before moving on
 		// so we can rehash it. else prepare loop to break and cur_table to
 		// get the empty slot occupied
-		if (cur_table->buckets[address]->full &&
-		    cur_table->buckets[address]->key == key) {
+		if (cur_table->buckets[address]->full) {
 			next_key = cur_table->buckets[address]->key;
+			printf("%llu replacing %llu, setting %llu as next to reinsert\n", key, next_key, next_key);
 		} else {
 			cur_table->buckets[address]->full = true;
 			cur_table->nkeys += 1;
@@ -284,6 +291,8 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 		// increment step counter
 		steps += 1;
 	}
+
+	xuckoo_hash_table_print(table);
 
 
 	return true;
