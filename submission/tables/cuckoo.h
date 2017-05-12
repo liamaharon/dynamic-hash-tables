@@ -13,7 +13,6 @@
 #include "../inthash.h"
 
 typedef struct cuckoo_table CuckooHashTable;
-typedef struct inner_table InnerTable;
 
 // initialise a cuckoo hash table with 'size' slots in each table
 CuckooHashTable *new_cuckoo_hash_table(int size);
