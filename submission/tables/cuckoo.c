@@ -28,26 +28,22 @@ struct cuckoo_table {
 	int size;			// size of the inner tables
 };
 
+/* * * *
+ * helper functions
+ */
 
-// initialise a cuckoo hash table with 'size' slots in each table
-CuckooHashTable *new_cuckoo_hash_table(int size) {
-	// init reference point for the two tables
-	CuckooHashTable *table = malloc(sizeof(*table));
-	assert(table);
 
-	// record size we're making tables
-	table->size = size;
+ // free all memory associated with 'inner_table'
+static void free_inner_table(InnerTable *inner_table) {
+	assert(inner_table);
 
-	// init the two inner tables
-	table->table1 = new_inner_table(size);
-	table->table2 = new_inner_table(size);
-
-	return table;
+	free(inner_table->slots);
+	free(inner_table->inuse);
+	free(inner_table);
 }
 
-
 // init a new inner_table of size n
-InnerTable *new_inner_table(int size) {
+static InnerTable *new_inner_table(int size) {
 	// init new InnerTable
 	InnerTable *inner_table = malloc((sizeof *inner_table) * size);
 	assert(inner_table);
@@ -62,6 +58,54 @@ InnerTable *new_inner_table(int size) {
 	return inner_table;
 }
 
+// double the size of inner tables within table, and reinsert everything
+static void double_table(CuckooHashTable *table) {
+	assert(table);
+	// save pointer of old inner tables and old size
+	InnerTable *old_table1 = table->table1;
+	InnerTable *old_table2 = table->table2;
+	int old_size = table->size;
+
+	// update table size
+	table->size = (table->size) * 2;
+	assert(table->size <= MAX_TABLE_SIZE);
+
+	// replace inner tables
+	table->table1 = new_inner_table(table->size);
+	table->table2 = new_inner_table(table->size);
+
+	int i;
+	// reinsert everything into the table
+	for (i = 0; i < old_size; i++) {
+		if (old_table1->inuse[i]) {
+			cuckoo_hash_table_insert(table, old_table1->slots[i]);
+		}
+		if (old_table2->inuse[i]) {
+			cuckoo_hash_table_insert(table, old_table2->slots[i]);
+		}
+	}
+	free_inner_table(old_table1);
+	free_inner_table(old_table2);
+}
+
+// initialise a cuckoo hash table with 'size' slots in each table
+CuckooHashTable *new_cuckoo_hash_table(int size) {
+	// create new table
+	CuckooHashTable *table = malloc(sizeof(*table));
+	assert(table);
+
+	// record size we're making tables
+	table->size = size;
+
+	// create the two inner tables
+	table->table1 = new_inner_table(size);
+	table->table2 = new_inner_table(size);
+
+	return table;
+}
+
+
+
 
 // free all memory associated with 'table'
 void free_cuckoo_hash_table(CuckooHashTable *table) {
@@ -73,14 +117,6 @@ void free_cuckoo_hash_table(CuckooHashTable *table) {
 }
 
 
-// free all memory associated with 'inner_table'
-void free_inner_table(InnerTable *inner_table) {
-	assert(inner_table);
-
-	free(inner_table->slots);
-	free(inner_table->inuse);
-	free(inner_table);
-}
 
 
 // insert 'key' into 'table', if it's not in there already
@@ -105,7 +141,7 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 
 	// while we have a key to hash keep going!
 	while (key) {
-		// if table too big need to double the size, then keep going
+		// if been cuckoo'ing too long need to double the size, then keep going
 		if (steps >= max_steps) {
 			// double table size and rehash everything
 			double_table(table);
@@ -138,13 +174,13 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 			next_key = false;
 		}
 
-		// insert key into it's desired slot, increment load
+		// insert key into it's desired slot
 		cur_table->slots[h] = key;
 
 		// set key to next key (if any)
 		key = next_key;
 
-		// switch next table to insert into
+		// alternate between inserting into table 1 and 2
 		cur_table_num = (cur_table_num == 1) ? 2: 1;
 
 		// increment step counter
@@ -154,35 +190,6 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 	return true;
 }
 
-// double the size of inner tables within table, and reinsert everything
-void double_table(CuckooHashTable *table) {
-	assert(table);
-	// save pointer of old inner tables and old size
-	InnerTable *old_table1 = table->table1;
-	InnerTable *old_table2 = table->table2;
-	int old_size = table->size;
-
-	// update table size
-	table->size = (table->size) * 2;
-	assert(table->size <= MAX_TABLE_SIZE);
-
-	// replace inner tables
-	table->table1 = new_inner_table(table->size);
-	table->table2 = new_inner_table(table->size);
-
-	int i;
-	// reinsert everything into the table
-	for (i = 0; i < old_size; i++) {
-		if (old_table1->inuse[i]) {
-			cuckoo_hash_table_insert(table, old_table1->slots[i]);
-		}
-		if (old_table2->inuse[i]) {
-			cuckoo_hash_table_insert(table, old_table2->slots[i]);
-		}
-	}
-	free_inner_table(old_table1);
-	free_inner_table(old_table2);
-}
 
 // lookup whether 'key' is inside 'table'
 // returns true if found, false if not

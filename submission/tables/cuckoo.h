@@ -18,14 +18,8 @@ typedef struct inner_table InnerTable;
 // initialise a cuckoo hash table with 'size' slots in each table
 CuckooHashTable *new_cuckoo_hash_table(int size);
 
-// init a new inner_table of size n
-InnerTable *new_inner_table(int size);
-
 // free all memory associated with 'table'
 void free_cuckoo_hash_table(CuckooHashTable *table);
-
-// free all memory associated with 'inner_table'
-void free_inner_table(InnerTable *inner_table);
 
 // insert 'key' into 'table', if it's not in there already
 // returns true if insertion succeeds, false if it was already in there
@@ -40,8 +34,5 @@ void cuckoo_hash_table_print(CuckooHashTable *table);
 
 // print some statistics about 'table' to stdout
 void cuckoo_hash_table_stats(CuckooHashTable *table);
-
-// double the size of a CuckooHashTable
-void double_table(CuckooHashTable *table);
 
 #endif
