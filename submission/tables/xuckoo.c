@@ -393,16 +393,15 @@ void xuckoo_hash_table_stats(XuckooHashTable *table) {
 	InnerTable *table2 = table->table2;
 
 	// compute some stats
-	// int total_size = table1->size + table2->size;
-	int total_nkeys = table1->nkeys + table2->nkeys;
-	int total_nbuckets = table1->nbuckets + table2->nbuckets;
+	int total_keys = table1->nkeys + table2->nkeys;
+	int total_buckets = table1->nbuckets + table2->nbuckets;
 	float t1_load_factor = table1->nbuckets * 100.0 / table1->size;
 	float t2_load_factor = table2->nbuckets * 100.0 / table2->size;
-	// calculate the percentage of keys and buckets each table holds
-	float t1_keyp = table1->nkeys * 100.0 / total_nkeys;
-	float t2_keyp = table2->nkeys * 100.0 / total_nkeys;
-	float t1_bucketp = table1->nbuckets * 100.0 / total_nbuckets;
-	float t2_bucketp = table2->nbuckets * 100.0 / total_nbuckets;
+	// calculate the % of keys and buckets each table holds
+	float t1_keyp = table1->nkeys * 100.0 / total_keys;
+	float t2_keyp = table2->nkeys * 100.0 / total_keys;
+	float t1_bucketp = table1->nbuckets * 100.0 / total_buckets;
+	float t2_bucketp = table2->nbuckets * 100.0 / total_buckets;
 
 	printf("--- table stats ---\n");
 
