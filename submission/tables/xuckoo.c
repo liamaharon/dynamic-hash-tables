@@ -74,7 +74,8 @@ static void double_table(InnerTable *inner_table) {
 	assert(size < MAX_TABLE_SIZE && "error: inner_table has grown too large!");
 
 	// get a new array of twice as many bucket pointers, and copy pointers down
-	inner_table->buckets = realloc(inner_table->buckets, (sizeof *inner_table->buckets) * size);
+	inner_table->buckets = realloc(inner_table->buckets,
+								  (sizeof *inner_table->buckets) * size);
 	assert(inner_table->buckets);
 	int i;
 	for (i = 0; i < inner_table->size; i++) {
@@ -91,9 +92,9 @@ static void double_table(InnerTable *inner_table) {
 // that there will definitely be space for this key because it was already
 // inside the hash table previously
 // use 'xtndbl1_hash_table_insert()' instead for inserting new keys
-static void reinsert_key(InnerTable *inner_table, int64 key, int cur_table_num) {
+static void reinsert_key(InnerTable *inner_table, int64 key, int table_num) {
 	// use correct hash function depending on which table we're inserting into
-	int hash = (cur_table_num == 1) ? h1(key): h2(key);
+	int hash = (table_num == 1) ? h1(key): h2(key);
 
 	int address = rightmostnbits(inner_table->depth, hash);
 	inner_table->buckets[address]->key = key;
@@ -101,8 +102,9 @@ static void reinsert_key(InnerTable *inner_table, int64 key, int cur_table_num) 
 }
 
 
-// split the bucket in 'table' at address 'address', growing table if necessary
-static void split_bucket(InnerTable *inner_table, int address, int cur_table_num) {
+// split the bucket in 'table' table_num at address 'address', growing table
+// if necessary
+static void split_bucket(InnerTable *inner_table, int address, int table_num) {
 
 	// FIRST,
 	// do we need to grow the table?
@@ -158,7 +160,7 @@ static void split_bucket(InnerTable *inner_table, int address, int cur_table_num
 	// remove and reinsert the key
 	int64 key = bucket->key;
 	bucket->full = false;
-	reinsert_key(inner_table, key, cur_table_num);
+	reinsert_key(inner_table, key, table_num);
 }
 
 
