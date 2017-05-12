@@ -50,7 +50,7 @@ struct xuckoo_table {
 
  // create a new bucket first referenced from 'first_address', based on 'depth'
  // bits of its keys' hash values
-Bucket *new_bucket(int first_address, int depth) {
+static Bucket *new_bucket(int first_address, int depth) {
 	Bucket *bucket = malloc(sizeof *bucket);
 	assert(bucket);
 
@@ -150,20 +150,23 @@ static void split_bucket(InnerTable *inner_table, int address) {
 }
 
 // init a new inner_table
-InnerTable *new_inner_table() {
+static InnerTable *new_inner_table() {
 	// init new InnerTable
-	InnerTable *inner_table = malloc((sizeof *inner_table) * size);
+	InnerTable *inner_table = malloc((sizeof *inner_table));
 	assert(inner_table);
 	inner_table->depth = 0;
 	inner_table->size = 1;
 
 	inner_table->buckets = malloc(sizeof *inner_table->buckets);
-	assert(table->buckets);
+	assert(inner_table->buckets);
 	inner_table->buckets[0] = new_bucket(0, 0);
 
 	return inner_table;
  }
 
+ /* * * *
+  * all functions
+  */
 
 // initialise an extendible cuckoo hash table
 XuckooHashTable *new_xuckoo_hash_table() {
@@ -179,19 +182,8 @@ XuckooHashTable *new_xuckoo_hash_table() {
 }
 
 
-
-// free all memory associated with 'table'
-void free_xuckoo_hash_table(XuckooHashTable *table) {
-	assert(table);
-
-	free_inner_table(table->table1);
-	free_inner_table(table->table2);
-
-	free(table);
-}
-
 // free all memory associated with the inner table
-void free_inner_table(InnerTable *inner_table) {
+static void free_inner_table(InnerTable *inner_table) {
 	assert(inner_table);
 
 	// loop backwards through the array of pointers, freeing buckets only as we
@@ -212,6 +204,18 @@ void free_inner_table(InnerTable *inner_table) {
 }
 
 
+// free all memory associated with 'table'
+void free_xuckoo_hash_table(XuckooHashTable *table) {
+	assert(table);
+
+	free_inner_table(table->table1);
+	free_inner_table(table->table2);
+
+	free(table);
+}
+
+
+
 // insert 'key' into 'table', if it's not in there already
 // returns true if insertion succeeds, false if it was already in there
 bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
@@ -230,13 +234,14 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 
 	// choose table 2 as first to try if it has less keys than table 1,
 	// else choose table 1 as first table to try
-	InnerTable *inner_table;
+	int cur_table_num;
 	if (table->table2->nkeys < table->table1->nkeys) {
 		cur_table_num = 2;
 	} else {
 		cur_table_num = 1;
 	}
 
+	InnerTable *cur_table;
 	while (key) {
 		// setup values for current iteration
 		if (cur_table_num == 1) {
@@ -246,12 +251,12 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 			cur_table = table->table2;
 			hash = h2(key);
 		}
-		address = rightmostnbits(inner_table->depth, hash);
+		address = rightmostnbits(cur_table->depth, hash);
 
 		// if been cuckooing too long need to split bucket, potentially
 		// doubling table size
 		if (steps >= max_steps) {
-			split_bucket(table, address);
+			split_bucket(cur_table, address);
 			max_steps = (table->table1->size + table->table2->size) / 2;
 		}
 
@@ -260,7 +265,7 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 		// get the empty slot occupied
 		if (cur_table->buckets[address]->full &&
 		    cur_table->buckets[address]->key == key) {
-			next_key = cur_table->key;
+			next_key = cur_table->buckets[address]->key;
 		} else {
 			cur_table->buckets[address]->full = true;
 			cur_table->nkeys += 1;
@@ -268,7 +273,7 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 		}
 
 		// insert key into it's desired slot
-		cur_table->buckets[address] = key;
+		cur_table->buckets[address]->key = key;
 
 		// set key to next key (if any)
 		key = next_key;
@@ -289,14 +294,13 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 // returns true if found, false if not
 bool xuckoo_hash_table_lookup(XuckooHashTable *table, int64 key) {
 	assert(table);
-	int h;
 
 	// calculate the address for this key in table 1
 	int address = rightmostnbits(table->table1->depth, h1(key));
 
 	// check if key in table 1
 	if (table->table1->buckets[address]->full &&
-		table->table1->buckets[address] == key) {
+		table->table1->buckets[address]->key == key) {
 		return true;
 	}
 
@@ -305,7 +309,7 @@ bool xuckoo_hash_table_lookup(XuckooHashTable *table, int64 key) {
 
 	// check if key in table 2
 	if (table->table2->buckets[address]->full &&
-		table->table2->buckets[address] == key) {
+		table->table2->buckets[address]->key == key) {
 		return true;
 	}
 
