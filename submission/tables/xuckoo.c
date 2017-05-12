@@ -217,6 +217,7 @@ void free_inner_table(InnerTable *inner_table) {
 bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 	assert(table);
 	int hash, address;
+	int64 next_key;
 
 	// is key already in table?
 	if (xuckoo_hash_table_lookup(table, key) == true) {
@@ -254,10 +255,29 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 			max_steps = (table->table1->size + table->table2->size) / 2;
 		}
 
+		// if destination slot is occupied need save it's val before moving on
+		// so we can rehash it. else prepare loop to break and cur_table to
+		// get the empty slot occupied
+		if (cur_table->buckets[address]->full &&
+		cur_table->buckets[address]->key == key) {
+			next_key = cur_table->key;
+		} else {
+			cur_table->buckets[address]->full = true;
+			cur_table->nkeys += 1;
+			next_key = false;
+		}
 
+		// insert key into it's desired slot
+		cur_table->buckets[address] = key;
 
+		// set key to next key (if any)
+		key = next_key;
 
+		// alternate between inserting into table 1 and 2
+		cur_table_num = (cur_table_num == 1) ? 2: 1;
 
+		// increment step counter
+		steps += 1;
 	}
 
 
