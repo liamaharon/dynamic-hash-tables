@@ -238,9 +238,9 @@ void free_xuckoo_hash_table(XuckooHashTable *table) {
 // returns true if insertion succeeds, false if it was already in there
 bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 	assert(table);
+	int start_time = clock();  // start timing
 	int hash, address;
 	int64 next_key;
-	int start_time = clock();  // start timing
 
 	// is key already in table?
 	if (xuckoo_hash_table_lookup(table, key) == true) {
@@ -339,7 +339,6 @@ bool xuckoo_hash_table_lookup(XuckooHashTable *table, int64 key) {
 	}
 
 	// key is in neither of the tables
-	// add time elapsed to total CPU time before returning result
 	table->time += clock() - start_time;
 	return false;
 }
@@ -412,14 +411,14 @@ void xuckoo_hash_table_stats(XuckooHashTable *table) {
 	printf("    %d buckets\n", table1->nbuckets);
 	printf("    %.1f%% of all keys\n", t1_keyp);
 	printf("    %.1f%% of all buckets\n", t1_bucketp);
-	printf("    load factor of %.1f%% (nbuckets/slots)\n", t1_load_factor);
+	printf("    load factor of %.3f%% (nbuckets/slots)\n", t1_load_factor);
 	printf("table 2:\n");
 	printf("    %d slots\n", table2->size);
 	printf("    %d keys\n", table2->nkeys);
 	printf("    %d buckets\n", table2->nbuckets);
 	printf("    %.1f%% of all keys\n", t2_keyp);
 	printf("    %.1f%% of all buckets\n", t2_bucketp);
-	printf("    load factor of %.1f%% (nbuckets/slots)\n", t2_load_factor);
+	printf("    load factor of %.3f%% (nbuckets/slots)\n", t2_load_factor);
 
 	// also calculate CPU usage in seconds and print this
 	float seconds = table->time * 1.0 / CLOCKS_PER_SEC;
