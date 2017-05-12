@@ -215,8 +215,23 @@ void free_inner_table(InnerTable *inner_table) {
 // insert 'key' into 'table', if it's not in there already
 // returns true if insertion succeeds, false if it was already in there
 bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
-	fprintf(stderr, "not yet implemented\n");
-	return false;
+	assert(table);
+
+	// is key already in table?
+	if (xuckoo_hash_table_lookup(table, key) == true) {
+		return false;
+	}
+
+	InnerTable *inner_table;
+	// first try inserting into table 2 if it has less keys than table 1,
+	// else first try inserting into table 1
+	if (table->table2->nkeys < table->table1->nkeys) {
+		inner_table = table->table2;
+	} else {
+		inner_table = table->table1;
+	}
+
+	return true;
 }
 
 
