@@ -396,32 +396,35 @@ void xuckoo_hash_table_stats(XuckooHashTable *table) {
 	// int total_size = table1->size + table2->size;
 	int total_nkeys = table1->nkeys + table2->nkeys;
 	int total_nbuckets = table1->nbuckets + table2->nbuckets;
-	int t1_bucket_load_factor = table1->nbuckets * 100.0 / table1->size;
-	int t2_bucket_load_factor = table2->nbuckets * 100.0 / table2->size;
+	float t1_load_factor = table1->nbuckets * 100.0 / table1->size;
+	float t2_load_factor = table2->nbuckets * 100.0 / table2->size;
+	// calculate the percentage of keys and buckets each table holds
+	float t1_keyp = table1->nkeys * 100.0 / total_nkeys;
+	float t2_keyp = table2->nkeys * 100.0 / total_nkeys;
+	float t1_bucketp = table1->nbuckets * 100.0 / total_nbuckets;
+	float t2_bucketp = table2->nbuckets * 100.0 / total_nbuckets;
 
 	printf("--- table stats ---\n");
 
 	// print some stats about state of the table
 	printf("table 1:\n");
-	printf("    size: %d\n", table1->size);
-	printf("    number of keys: %d\n", table1->nkeys);
-	printf("    number of buckets: %d\n", table1->nbuckets);
-	printf("    bucket load factor: %d\n", t1_bucket_load_factor);
+	printf("    %d slots\n", table1->size);
+	printf("    %d keys\n", table1->nkeys);
+	printf("    %d buckets\n", table1->nbuckets);
+	printf("    %.1f%% of all keys\n", t1_keyp);
+	printf("    %.1f%% of all buckets\n", t1_bucketp);
+	printf("    load factor of %.1f%% (nbuckets/slots)\n", t1_load_factor);
 	printf("table 2:\n");
-	printf("    size: %d\n", table2->size);
-	printf("    number of keys: %d\n", table2->nkeys);
-	printf("    number of buckets: %d\n", table2->nbuckets);
-	printf("    bucket load factor: %d\n", t2_bucket_load_factor);
-	printf("table 1 contains:\n");
-	printf("    %.1f%% of all keys\n", table1->nkeys * 100.0 / total_nkeys);
-	printf("    %.1f%% of all buckets\n", table1->nbuckets * 100.0 / total_nbuckets);
-	printf("table 2 contains:\n");
-	printf("    %.1f%% of all keys\n", table2->nkeys * 100.0 / total_nkeys);
-	printf("    %.1f%% of all buckets\n", table2->nbuckets * 100.0 / total_nbuckets);
+	printf("    %d slots\n", table2->size);
+	printf("    %d keys\n", table2->nkeys);
+	printf("    %d buckets\n", table2->nbuckets);
+	printf("    %.1f%% of all keys\n", t2_keyp);
+	printf("    %.1f%% of all buckets\n", t2_bucketp);
+	printf("    load factor of %.1f%% (nbuckets/slots)\n", t2_load_factor);
 
 	// also calculate CPU usage in seconds and print this
 	float seconds = table->time * 1.0 / CLOCKS_PER_SEC;
-	printf("    CPU time spent: %.6f sec\n", seconds);
+	printf("CPU time spent: %.6f sec\n", seconds);
 
 	printf("--- end stats ---\n");
 }
