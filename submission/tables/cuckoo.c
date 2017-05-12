@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <time.h>
 
 #include "cuckoo.h"
 
@@ -26,6 +27,8 @@ struct cuckoo_table {
 	InnerTable *table1; // first table
 	InnerTable *table2; // second table
 	int size;			// size of the inner tables
+	int time;			// how much CPU time has been used to insert/lookup keys
+					    // in this table
 };
 
 
@@ -126,12 +129,14 @@ void free_cuckoo_hash_table(CuckooHashTable *table) {
 // returns true if insertion succeeds, false if it was already in there
 bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 	assert(table);
+	int start_time = clock();  // start timing
 	int h;
 	int64 next_key;
 	InnerTable* cur_table;
 
 	// if key already in table return false
 	if (cuckoo_hash_table_lookup(table, key) == true) {
+		table->time += clock() - start_time;  // add time elapsed
 		return false;
 	}
 
@@ -190,6 +195,7 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 		steps += 1;
 	}
 
+	table->time += clock() - start_time;  // add time elapsed
 	return true;
 }
 
@@ -198,6 +204,7 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 // returns true if found, false if not
 bool cuckoo_hash_table_lookup(CuckooHashTable *table, int64 key) {
 	assert(table);
+	int start_time = clock(); // start timing
 	int h;
 
 	// calculate the address for this key in table 1
@@ -205,6 +212,7 @@ bool cuckoo_hash_table_lookup(CuckooHashTable *table, int64 key) {
 
 	// check if key in table 1
 	if (table->table1->inuse[h] && table->table1->slots[h] == key) {
+		table->time += clock() - start_time;
 		return true;
 	}
 
@@ -213,10 +221,12 @@ bool cuckoo_hash_table_lookup(CuckooHashTable *table, int64 key) {
 
 	// check if key in table 2
 	if (table->table2->inuse[h] && table->table2->slots[h] == key) {
+		table->time += clock() - start_time;
 		return true;
 	}
 
 	// key is in neither of the tables
+	table->time += clock() - start_time;
 	return false;
 }
 
@@ -260,14 +270,27 @@ void cuckoo_hash_table_print(CuckooHashTable *table) {
 // print some statistics about 'table' to stdout
 void cuckoo_hash_table_stats(CuckooHashTable *table) {
 	assert(table);
+
+	InnerTable *table1 = table->table1;
+	InnerTable *table2 = table->table2;
+
+	// calculate some stats
+	float t1_load_factor = table1->load * 100.0 / table->size;
+	float t2_load_factor = table2->load * 100.0 / table->size;
+
 	printf("--- table stats ---\n");
 
 	// print some information about the table
-	printf("current size: %d slots\n", table->size);
-	printf("table1 current load: %d items\n", table->table1->load);
-	printf(" table1 load factor: %.3f%%\n", table->table1->load * 100.0 / table->size);
-	printf("current table2 load: %d items\n", table->table2->load);
-	printf(" table2 load factor: %.3f%%\n", table->table2->load * 100.0 / table->size);
+	printf("current size of both tables: %d slots\n", table->size);
+	printf("table 1:\n");
+	printf("    current load: %d items\n", table1->load);
+	printf("    load factor: %.3f%%\n", t1_load_factor);
+	printf("table 2:\n");
+	printf("    current load: %d items\n", table2->load);
+	printf("    load factor: %.3f%%\n", t2_load_factor);
+	// also calculate CPU usage in seconds and print this
+	float seconds = table->time * 1.0 / CLOCKS_PER_SEC;
+	printf("CPU time spent: %.6f sec\n", seconds);
 
 	printf("--- end stats ---\n");
 }
