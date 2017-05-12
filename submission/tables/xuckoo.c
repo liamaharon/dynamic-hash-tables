@@ -259,7 +259,7 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 		// so we can rehash it. else prepare loop to break and cur_table to
 		// get the empty slot occupied
 		if (cur_table->buckets[address]->full &&
-		cur_table->buckets[address]->key == key) {
+		    cur_table->buckets[address]->key == key) {
 			next_key = cur_table->key;
 		} else {
 			cur_table->buckets[address]->full = true;
@@ -288,7 +288,28 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 // lookup whether 'key' is inside 'table'
 // returns true if found, false if not
 bool xuckoo_hash_table_lookup(XuckooHashTable *table, int64 key) {
-	fprintf(stderr, "not yet implemented\n");
+	assert(table);
+	int h;
+
+	// calculate the address for this key in table 1
+	int address = rightmostnbits(table->table1->depth, h1(key));
+
+	// check if key in table 1
+	if (table->table1->buckets[address]->full &&
+		table->table1->buckets[address] == key) {
+		return true;
+	}
+
+	// calculate the address for this key in table 2
+	address = rightmostnbits(table->table2->depth, h2(key));
+
+	// check if key in table 2
+	if (table->table2->buckets[address]->full &&
+		table->table2->buckets[address] == key) {
+		return true;
+	}
+
+	// key is in neither of the tables
 	return false;
 }
 
