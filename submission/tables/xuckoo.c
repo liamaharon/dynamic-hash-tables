@@ -216,20 +216,50 @@ void free_inner_table(InnerTable *inner_table) {
 // returns true if insertion succeeds, false if it was already in there
 bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 	assert(table);
+	int hash, address;
 
 	// is key already in table?
 	if (xuckoo_hash_table_lookup(table, key) == true) {
 		return false;
 	}
 
+	// count steps so we know when need to increase table size
+	int steps = 0;
+	int max_steps = (table->table1->size + table->table2->size) / 2;
+
+	// choose table 2 as first to try if it has less keys than table 1,
+	// else choose table 1 as first table to try
 	InnerTable *inner_table;
-	// first try inserting into table 2 if it has less keys than table 1,
-	// else first try inserting into table 1
 	if (table->table2->nkeys < table->table1->nkeys) {
-		inner_table = table->table2;
+		cur_table_num = 2;
 	} else {
-		inner_table = table->table1;
+		cur_table_num = 1;
 	}
+
+	while (key) {
+		// setup values for current iteration
+		if (cur_table_num == 1) {
+			cur_table = table->table1;
+			hash = h1(key);
+		} else {
+			cur_table = table->table2;
+			hash = h2(key);
+		}
+		address = rightmostnbits(inner_table->depth, hash);
+
+		// if been cuckooing too long need to split bucket, potentially
+		// doubling table size
+		if (steps >= max_steps) {
+			split_bucket(table, address);
+			max_steps = (table->table1->size + table->table2->size) / 2;
+		}
+
+
+
+
+
+	}
+
 
 	return true;
 }
