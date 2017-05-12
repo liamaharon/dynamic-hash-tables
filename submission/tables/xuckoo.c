@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <time.h>
 
 #include "xuckoo.h"
 
@@ -36,12 +37,15 @@ typedef struct inner_table {
 	int size;			// how many entries in the table of pointers (2^depth)
 	int depth;			// how many bits of the hash value to use (log2(size))
 	int nkeys;			// how many keys are being stored in the table
+	int nbuckets;		// how many buckets are being stored in the table
 } InnerTable;
 
 // a xuckoo hash table is just two inner tables for storing inserted keys
 struct xuckoo_table {
 	InnerTable *table1;
 	InnerTable *table2;
+	int time;          // how much CPU time has been used to insert/lookup keys
+					   // in this table
 };
 
 
@@ -121,6 +125,7 @@ static void split_bucket(InnerTable *inner_table, int address, int cur_table_num
 	// new bucket's first address will be a 1 bit plus the old first address
 	int new_first_address = 1 << depth | first_address;
 	Bucket *newbucket = new_bucket(new_first_address, new_depth);
+	inner_table->nbuckets++;
 
 	// THIRD,
 	// redirect every second address pointing to this bucket to the new bucket
@@ -169,6 +174,9 @@ static InnerTable *new_inner_table() {
 	assert(inner_table->buckets);
 	inner_table->buckets[0] = new_bucket(0, 0);
 
+	inner_table->nbuckets = 1;
+	inner_table->nkeys = 0;
+
 	return inner_table;
  }
 
@@ -186,6 +194,8 @@ XuckooHashTable *new_xuckoo_hash_table() {
 	// create new inner tables
 	table->table1 = new_inner_table();
 	table->table2 = new_inner_table();
+
+	table->time = 0;
 
 	return table;
 }
@@ -230,9 +240,11 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 	assert(table);
 	int hash, address;
 	int64 next_key;
+	int start_time = clock();  // start timing
 
 	// is key already in table?
 	if (xuckoo_hash_table_lookup(table, key) == true) {
+		table->time += clock() - start_time;  // add time elapsed
 		return false;
 	}
 
@@ -275,7 +287,7 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 			next_key = cur_table->buckets[address]->key;
 		} else {
 			cur_table->buckets[address]->full = true;
-			cur_table->nkeys += 1;
+			cur_table->nkeys++;
 			next_key = false;
 		}
 
@@ -289,9 +301,9 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 		cur_table_num = (cur_table_num == 1) ? 2: 1;
 
 		// increment step counter
-		steps += 1;
+		steps++;
 	}
-
+	table->time += clock() - start_time;  // add time elapsed
 	return true;
 }
 
@@ -300,6 +312,7 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 // returns true if found, false if not
 bool xuckoo_hash_table_lookup(XuckooHashTable *table, int64 key) {
 	assert(table);
+	int start_time = clock(); // start timing
 
 	// calculate the address for this key in table 1
 	int address = rightmostnbits(table->table1->depth, h1(key));
@@ -307,6 +320,8 @@ bool xuckoo_hash_table_lookup(XuckooHashTable *table, int64 key) {
 	// check if key in table 1
 	if (table->table1->buckets[address]->full &&
 		table->table1->buckets[address]->key == key) {
+		// add time elapsed to total CPU time before returning result
+		table->time += clock() - start_time;
 		return true;
 	}
 
@@ -316,10 +331,14 @@ bool xuckoo_hash_table_lookup(XuckooHashTable *table, int64 key) {
 	// check if key in table 2
 	if (table->table2->buckets[address]->full &&
 		table->table2->buckets[address]->key == key) {
+		// add time elapsed to total CPU time before returning result
+		table->time += clock() - start_time;
 		return true;
 	}
 
 	// key is in neither of the tables
+	// add time elapsed to total CPU time before returning result
+	table->time += clock() - start_time;
 	return false;
 }
 
@@ -366,6 +385,41 @@ void xuckoo_hash_table_print(XuckooHashTable *table) {
 
 // print some statistics about 'table' to stdout
 void xuckoo_hash_table_stats(XuckooHashTable *table) {
-	fprintf(stderr, "not yet implemented\n");
-	return;
+	assert(table);
+
+	InnerTable *table1 = table->table1;
+	InnerTable *table2 = table->table2;
+
+	// compute some stats
+	// int total_size = table1->size + table2->size;
+	int total_nkeys = table1->nkeys + table2->nkeys;
+	int total_nbuckets = table1->nbuckets + table2->nbuckets;
+	int t1_bucket_load_factor = table1->nbuckets * 100.0 / table1->size;
+	int t2_bucket_load_factor = table2->nbuckets * 100.0 / table2->size;
+
+	printf("--- table stats ---\n");
+
+	// print some stats about state of the table
+	printf("table 1\n");
+	printf("    size: %d\n", table1->size);
+	printf("    number of keys: %d\n", table1->nkeys);
+	printf("    number of buckets: %d\n", table1->nbuckets);
+	printf("    bucket load factor: %d\n\n", t1_bucket_load_factor);
+	printf("table 2\n");
+	printf("    size: %d\n", table2->size);
+	printf("    number of keys: %d\n", table2->nkeys);
+	printf("    number of buckets: %d\n", table2->nbuckets);
+	printf("    bucket load factor: %d\n\n", t2_bucket_load_factor);
+	printf("table 1 contains:\n");
+	printf("    %.1f%% of all keys\n", table1->nkeys * 100.0 / total_nkeys);
+	printf("    %.1f%% of all buckets\n", table1->nbuckets * 100.0 / total_nbuckets);
+	printf("table 2 contains:\n");
+	printf("    %.1f%% of all keys\n", table2->nkeys * 100.0 / total_nkeys);
+	printf("    %.1f%% of all buckets\n", table2->nbuckets * 100.0 / total_nbuckets);
+
+	// also calculate CPU usage in seconds and print this
+	float seconds = table->time * 1.0 / CLOCKS_PER_SEC;
+	printf("    CPU time spent: %.6f sec\n", seconds);
+
+	printf("--- end stats ---\n");
 }
