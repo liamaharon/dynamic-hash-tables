@@ -28,10 +28,10 @@ struct cuckoo_table {
 	int size;			// size of the inner tables
 };
 
+
 /* * * *
  * helper functions
  */
-
 
  // free all memory associated with 'inner_table'
 static void free_inner_table(InnerTable *inner_table) {
@@ -41,6 +41,7 @@ static void free_inner_table(InnerTable *inner_table) {
 	free(inner_table->inuse);
 	free(inner_table);
 }
+
 
 // init a new inner_table of size n
 static InnerTable *new_inner_table(int size) {
@@ -57,6 +58,7 @@ static InnerTable *new_inner_table(int size) {
 
 	return inner_table;
 }
+
 
 // double the size of inner tables within table, and reinsert everything
 static void double_table(CuckooHashTable *table) {
@@ -88,6 +90,11 @@ static void double_table(CuckooHashTable *table) {
 	free_inner_table(old_table2);
 }
 
+
+/* * * *
+ * all functions
+ */
+
 // initialise a cuckoo hash table with 'size' slots in each table
 CuckooHashTable *new_cuckoo_hash_table(int size) {
 	// create new table
@@ -105,8 +112,6 @@ CuckooHashTable *new_cuckoo_hash_table(int size) {
 }
 
 
-
-
 // free all memory associated with 'table'
 void free_cuckoo_hash_table(CuckooHashTable *table) {
 	assert(table);
@@ -115,8 +120,6 @@ void free_cuckoo_hash_table(CuckooHashTable *table) {
 	free_inner_table(table->table2);
 	free(table);
 }
-
-
 
 
 // insert 'key' into 'table', if it's not in there already

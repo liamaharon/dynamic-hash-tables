@@ -1,11 +1,11 @@
 /* * * * * * * * *
 * Dynamic hash table using a combination of extendible hashing and cuckoo
-* hashing with a single keys per bucket, resolving collisions by switching keys 
-* between two tables with two separate hash functions and growing the tables 
+* hashing with a single keys per bucket, resolving collisions by switching keys
+* between two tables with two separate hash functions and growing the tables
 * incrementally in response to cycles
 *
 * created for COMP20007 Design of Algorithms - Assignment 2, 2017
-* by ...
+* by Liam Aharon
 */
 
 #ifndef XUCKOO_H
