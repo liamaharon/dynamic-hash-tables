@@ -271,10 +271,12 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 			cur_table = table->table2;
 			hash = h2(key);
 		}
+
+		// get address of where key should sit in the table
 		address = rightmostnbits(cur_table->depth, hash);
 
 		// if been cuckooing too long need to split bucket, potentially
-		// doubling table size
+		// doubling table size. make sure we split a bucket that has keys
 		if (steps >= max_steps && cur_table->buckets[address]->full) {
 			split_bucket(cur_table, address, cur_table_num);
 			max_steps = (table->table1->size + table->table2->size) / 2;
@@ -400,16 +402,16 @@ void xuckoo_hash_table_stats(XuckooHashTable *table) {
 	printf("--- table stats ---\n");
 
 	// print some stats about state of the table
-	printf("table 1\n");
+	printf("table 1:\n");
 	printf("    size: %d\n", table1->size);
 	printf("    number of keys: %d\n", table1->nkeys);
 	printf("    number of buckets: %d\n", table1->nbuckets);
-	printf("    bucket load factor: %d\n\n", t1_bucket_load_factor);
-	printf("table 2\n");
+	printf("    bucket load factor: %d\n", t1_bucket_load_factor);
+	printf("table 2:\n");
 	printf("    size: %d\n", table2->size);
 	printf("    number of keys: %d\n", table2->nkeys);
 	printf("    number of buckets: %d\n", table2->nbuckets);
-	printf("    bucket load factor: %d\n\n", t2_bucket_load_factor);
+	printf("    bucket load factor: %d\n", t2_bucket_load_factor);
 	printf("table 1 contains:\n");
 	printf("    %.1f%% of all keys\n", table1->nkeys * 100.0 / total_nkeys);
 	printf("    %.1f%% of all buckets\n", table1->nbuckets * 100.0 / total_nbuckets);
