@@ -14,6 +14,15 @@
 // how many cells to advance at a time while looking for a free slot
 #define STEP_SIZE 1
 
+// helper structure to store statistics gathered
+typedef struct stats {
+	int ncollisions;	// how many distinct buckets does the table point to
+	int nprobes;		// how many keys are being stored in the table
+	int failed_checks;  // cumulative sum of the number of slots checked before
+						// a key is inserted into a free space.
+	int load;		    // number of keys in the table right now
+} Stats;
+
 // a hash table is an array of slots holding keys, along with a parallel array
 // of boolean markers recording which slots are in use (true) or free (false)
 // important because not-in-use slots might hold garbage data, as they may
@@ -22,7 +31,7 @@ struct linear_table {
 	int64 *slots;	// array of slots holding keys
 	bool  *inuse;	// is this slot in use or not?
 	int size;		// the size of both of these arrays right now
-	int load;		// number of keys in the table right now
+	Stats stats;	// collection of statistics about this hash table
 };
 
 
@@ -45,7 +54,11 @@ static void initialise_table(LinearHashTable *table, int size) {
 	}
 
 	table->size = size;
-	table->load = 0;
+
+	table->stats.load = 0;
+	table->stats.ncollisions = 0;
+	table->stats.nprobes = 0;
+	table->stats.failed_checks = 0;
 }
 
 
@@ -117,7 +130,14 @@ bool linear_hash_table_insert(LinearHashTable *table, int64 key) {
 			// this key already exists in the table! no need to insert
 			return false;
 		}
-		
+// //////////////////NEED TO FIX THIS
+		// record a failed check
+		table->stats.failed_checks++;
+
+		// mark that there is a collision when hashing this key
+		bool collision = true;
+// //////////////////NEED TO FIX THIS
+
 		// else, keep stepping through the table looking for a free slot
 		h = (h + STEP_SIZE) % table->size;
 		steps++;
@@ -135,6 +155,7 @@ bool linear_hash_table_insert(LinearHashTable *table, int64 key) {
 		table->slots[h] = key;
 		table->inuse[h] = true;
 		table->load++;
+		if (collision) table->stats.ncollisions++;
 		return true;
 	}
 }
@@ -183,7 +204,7 @@ void linear_hash_table_print(LinearHashTable *table) {
 	// print the rows of the hash table
 	int i;
 	for (i = 0; i < table->size; i++) {
-		
+
 		// print the address
 		printf(" %9d | ", i);
 
@@ -203,12 +224,12 @@ void linear_hash_table_print(LinearHashTable *table) {
 void linear_hash_table_stats(LinearHashTable *table) {
 	assert(table != NULL);
 	printf("--- table stats ---\n");
-	
+
 	// print some information about the table
 	printf("current size: %d slots\n", table->size);
 	printf("current load: %d items\n", table->load);
 	printf(" load factor: %.3f%%\n", table->load * 100.0 / table->size);
 	printf("   step size: %d slots\n", STEP_SIZE);
-	
+
 	printf("--- end stats ---\n");
 }
