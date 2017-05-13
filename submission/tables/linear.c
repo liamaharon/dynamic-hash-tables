@@ -31,13 +31,13 @@ typedef struct {
 	// a certian load factor. indexes correspond to same load factors in
 	// 'colls_by_load'
 	int nprobes_by_load[10];
-	// records total number of keys that have inserted under load range, split
-	// into 10% intervals same as 'colls_by_load'
-	int nkeys_by_load[10];
 } Probes;
 
 // helper structure to store statistics gathered
 typedef struct stats {
+	// records total number of keys that have inserted under load range, split
+	// into 10% intervals same as 'colls_by_load'
+	int nkeys_by_load[10];
 	Collisions coll;  // infomation about collisions during insersion
 	Probes probes;    // infomation about the probes required to insert
 } Stats;
@@ -85,9 +85,9 @@ static void initialise_stats(LinearHashTable *table) {
 	table->stats.coll.total_colls = 0;
 	int i;
 	for (i = 0; i < 10; i++) {
+		table->stats.nkeys_by_load[i] = 0;
 		table->stats.coll.colls_by_load[i] = 0;
 		table->stats.probes.nprobes_by_load[i] = 0;
-		table->stats.probes.nkeys_by_load[i] = 0;
 	}
 }
 
@@ -129,60 +129,60 @@ static int get_stats_index(float load_factor) {
 
 
 // update statistics about when collisions are likely to occur in the table
-static void update_collision_stats(LinearHashTable *table) {
+// static void update_collision_stats(LinearHashTable *table, int index) {
+// 	assert(table);
+//
+// 	// // increment overall keys with at least 1 collision during insersion
+// 	// table->stats.coll.total_colls++;
+// 	// mark what the load factor was when this collision occured
+// }
+//
+// static void update_probe_stats(LinearHashTable *table, int steps, int index) {
+// 	assert(table);
+//
+// 	// update probes stats
+// }
+
+static void update_table_stats(LinearHashTable *table, int steps, bool coll) {
 	assert(table);
 
 	// calculate the load factor at the time of collision
 	float load_factor = table->load * 100.0 / table->size;
 
-	// get index that needs updating
+	// get index of load factor that needs updating
 	int index = get_stats_index(load_factor);
-
-	// increment overall keys with at least 1 collision during insersion
-	table->stats.coll.total_colls++;
-	// mark what the load factor was when this collision occured
-	table->stats.coll.colls_by_load[index]++;
-}
-
-static void update_probe_stats(LinearHashTable *table, int steps) {
-	assert(table);
-
-	// calculate the load factor at the time of collision
-	float load_factor = table->load * 100.0 / table->size;
-
-	// get index that needs updating
-	int index = get_stats_index(load_factor);
-
-	// update probes stats
-	table->stats.probes.nkeys_by_load[index]++;
+	if (coll) table->stats.coll.colls_by_load[index]++;
 	table->stats.probes.nprobes_by_load[index] += steps;
+	table->stats.nkeys_by_load[index]++;
 }
 
 // print infomation about collisions
 static void print_collisions_stats(LinearHashTable *table) {
-	int total_colls = table->stats.coll.total_colls;
+	assert(table);
 
-	printf("\nTotal collisions: %d\n", total_colls);
-	printf("Collisions when load factor\n");
-	int i, lower_bound, upper_bound, colls_this_load;
+	printf("\nCollision during insert when load factor is\n");
+	int i, lower_bound, upper_bound, colls_this_load, nkeys_this_load;
 	float percent;
 	for (i=0; i<10; i++) {
 		// calculate stats for this load factor
+		nkeys_this_load = table->stats.nkeys_by_load[i];
 		colls_this_load = table->stats.coll.colls_by_load[i];
 		lower_bound = i * 10;
 		upper_bound = (i + 1) * 10;
 		// avoid 0 division
-		if (total_colls > 0) {
-			percent = colls_this_load * 100.0 / total_colls;
+		if (nkeys_this_load > 0) {
+			percent = colls_this_load * 100.0 / nkeys_this_load;
 		} else percent = 0.0;
 
-		printf("    %d%% - %d%%: %d (%.2f%%)\n",
+		printf("    %d%% - %d%%: %d (%.2f%% chance)\n",
 			lower_bound, upper_bound, colls_this_load, percent);
 	}
 }
 
 // print infomation about average probe sequence length
 static void print_probe_stats(LinearHashTable *table) {
+	assert(table);
+
 	int i, lower_bound, upper_bound, probes_this_load, nkeys_this_load;
 	float avg_probe;
 
@@ -192,7 +192,7 @@ static void print_probe_stats(LinearHashTable *table) {
 		lower_bound = i * 10;
 		upper_bound = (i + 1) * 10;
 		probes_this_load = table->stats.probes.nprobes_by_load[i];
-		nkeys_this_load = table->stats.probes.nkeys_by_load[i];
+		nkeys_this_load = table->stats.nkeys_by_load[i];
 		// avoid 0 division
 		if (nkeys_this_load > 0) {
 			avg_probe = probes_this_load * 1.0 / nkeys_this_load;
@@ -280,8 +280,8 @@ bool linear_hash_table_insert(LinearHashTable *table, int64 key) {
 		table->slots[h] = key;
 		table->inuse[h] = true;
 		table->load++;
-		if (collision) update_collision_stats(table);
-		update_probe_stats(table, steps);
+		// update table stats before returning
+		update_table_stats(table, steps, collision);
 		return true;
 	}
 }
@@ -357,9 +357,9 @@ void linear_hash_table_stats(LinearHashTable *table) {
 	printf(" load factor: %.3f%%\n", table->load * 100.0 / table->size);
 	printf("   step size: %d slots\n", STEP_SIZE);
 
-	// print infomation about collisions
+	// print some infomation about collisions
 	print_collisions_stats(table);
 
-	// print infomation about average probe sequence length
+	// print some infomation about average probe sequence length
 	print_probe_stats(table);
 }
