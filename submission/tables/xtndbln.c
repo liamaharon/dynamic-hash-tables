@@ -28,6 +28,14 @@ typedef struct xtndbln_bucket {
 	int64 *keys;	// the keys stored in this bucket
 } Bucket;
 
+// helper structure to store statistics gathered
+typedef struct stats {
+	int nbuckets;	// how many distinct buckets does the table point to
+	int nkeys;		// how many keys are being stored in the table
+	int time;		// how much CPU time has been used to insert/lookup keys
+					// in this table
+} Stats;
+
 // a hash table is an array of slots pointing to buckets holding up to
 // bucketsize keys, along with some information about the number of hash value
 // bits to use for addressing
@@ -36,6 +44,7 @@ struct xtndbln_table {
 	int size;			// how many entries in the table of pointers (2^depth)
 	int depth;			// how many bits of the hash value to use (log2(size))
 	int bucketsize;		// maximum number of keys per bucket
+	Stats stats;
 };
 
 /* * * *
@@ -122,6 +131,7 @@ static void split_bucket(XtndblNHashTable *table, int address) {
 	// new bucket's first address will be a 1 bit plus the old first address
 	int new_first_address = 1 << depth | first_address;
 	Bucket *newbucket = new_bucket(new_first_address, new_depth, bucketsize);
+	table->stats.nbuckets++;
 
 	// THIRD,
 	// redirect every second address pointing to this bucket to the new bucket
@@ -177,13 +187,17 @@ XtndblNHashTable *new_xtndbln_hash_table(int bucketsize) {
 	assert(table);
 
 	table->size = 1;
+
+	table->bucketsize = bucketsize;
 	table->buckets = malloc((sizeof *table->buckets) * table->size);
 	assert(table->buckets);
 	table->buckets[0] = new_bucket(0, 0, bucketsize);
 
 	table->depth = 0;
 
-	table->bucketsize = bucketsize;
+	table->stats.nbuckets = 1;
+	table->stats.nkeys = 0;
+	table->stats.time = 0;
 
 	return table;
 }
@@ -216,7 +230,7 @@ void free_xtndbln_hash_table(XtndblNHashTable *table) {
 // returns true if insertion succeeds, false if it was already in there
 bool xtndbln_hash_table_insert(XtndblNHashTable *table, int64 key) {
 	assert(table);
-	// int start_time = clock(); // start timing
+	int start_time = clock(); // start timing
 
 	// calculate table address
 	int hash = h1(key);
@@ -224,6 +238,7 @@ bool xtndbln_hash_table_insert(XtndblNHashTable *table, int64 key) {
 
 	// check if key already in table
 	if (xtndbln_hash_table_lookup(table, key) == true) {
+		table->stats.time += clock() - start_time; // add time elapsed
 		return false;
 	};
 
@@ -235,10 +250,11 @@ bool xtndbln_hash_table_insert(XtndblNHashTable *table, int64 key) {
 	}
 
 	// there's now space! we can insert this key at the next avaliable position
-	// in the bucket
+	// in the bucket, record time and return
 	int nkeys = table->buckets[address]->nkeys += 1;
 	table->buckets[address]->keys[nkeys-1] = key;
-
+	table->stats.nkeys++;
+	table->stats.time += clock() - start_time;
 	return true;
 }
 
@@ -247,9 +263,8 @@ bool xtndbln_hash_table_insert(XtndblNHashTable *table, int64 key) {
 // returns true if found, false if not
 bool xtndbln_hash_table_lookup(XtndblNHashTable *table, int64 key) {
 	assert(table);
+	int start_time = clock(); // start timing
 	int i;
-
-	// int start_time = clock(); // start timing
 
 	// calculate table address for this key
 	int address = rightmostnbits(table->depth, h1(key));
@@ -258,11 +273,15 @@ bool xtndbln_hash_table_lookup(XtndblNHashTable *table, int64 key) {
 	if (table->buckets[address]->nkeys > 0) {
 		// search bucket
 		for (i=0; i<table->buckets[address]->nkeys; i++) {
-			// if found return true
-			if (table->buckets[address]->keys[i] == key) return true;
+			// if found return record time and true
+			if (table->buckets[address]->keys[i] == key) {
+				table->stats.time += clock() - start_time;
+				return true;
+			}
 		}
 	}
-	// not found, return false
+	// not found, record time and return false
+	table->stats.time += clock() - start_time;
 	return false;
 }
 
@@ -307,5 +326,18 @@ void xtndbln_hash_table_print(XtndblNHashTable *table) {
 
 // print some statistics about 'table' to stdout
 void xtndbln_hash_table_stats(XtndblNHashTable *table) {
-	fprintf(stderr, "not yet implemented\n");
+	assert(table);
+
+	printf("--- table stats ---\n");
+
+	// print some stats about state of the table
+	printf("current table size: %d\n", table->size);
+	printf("    number of keys: %d\n", table->stats.nkeys);
+	printf(" number of buckets: %d\n", table->stats.nbuckets);
+
+	// also calculate CPU usage in seconds and print this
+	float seconds = table->stats.time * 1.0 / CLOCKS_PER_SEC;
+	printf("    CPU time spent: %.6f sec\n", seconds);
+
+	printf("--- end stats ---\n");
 }
