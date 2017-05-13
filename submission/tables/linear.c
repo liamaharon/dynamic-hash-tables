@@ -158,6 +158,54 @@ static void update_probe_stats(LinearHashTable *table, int steps) {
 	table->stats.probes.nprobes_by_load[index] += steps;
 }
 
+// print infomation about collisions
+static void print_collisions_stats(LinearHashTable *table) {
+	int total_colls = table->stats.coll.total_colls;
+
+	printf("\nTotal collisions: %d\n", total_colls);
+	printf("Collisions when load factor\n");
+	int i, lower_bound, upper_bound, colls_this_load;
+	float percent;
+	for (i=0; i<10; i++) {
+		// calculate stats for this load factor
+		colls_this_load = table->stats.coll.colls_by_load[i];
+		lower_bound = i * 10;
+		upper_bound = (i + 1) * 10;
+		// avoid 0 division
+		if (total_colls > 0) {
+			percent = colls_this_load * 100.0 / total_colls;
+		} else percent = 0.0;
+
+		printf("    %d%% - %d%%: %d (%.2f%%)\n",
+			lower_bound, upper_bound, colls_this_load, percent);
+	}
+}
+
+// print infomation about average probe sequence length
+static void print_probe_stats(LinearHashTable *table) {
+	int i, lower_bound, upper_bound, probes_this_load, nkeys_this_load;
+	float avg_probe;
+
+	printf("\nAverage probe sequence length when load factor is\n");
+	for (i=0; i<10; i++) {
+		// calculate stats for this load factor
+		lower_bound = i * 10;
+		upper_bound = (i + 1) * 10;
+		probes_this_load = table->stats.probes.nprobes_by_load[i];
+		nkeys_this_load = table->stats.probes.nkeys_by_load[i];
+		// avoid 0 division
+		if (nkeys_this_load > 0) {
+			avg_probe = probes_this_load * 1.0 / nkeys_this_load;
+		} else {
+			avg_probe = 0.0;
+		}
+		// finally print the avg probe sequence length for this load factor
+		printf("    %d%% - %d%%: %.2f\n",
+			lower_bound, upper_bound, avg_probe);
+	}
+
+	printf("--- end stats ---\n");
+}
 
 
 /* * * *
@@ -310,47 +358,8 @@ void linear_hash_table_stats(LinearHashTable *table) {
 	printf("   step size: %d slots\n", STEP_SIZE);
 
 	// print infomation about collisions
-	int total_colls = table->stats.coll.total_colls;
-
-	printf("\nTotal collisions: %d\n", total_colls);
-	printf("Collisions when load factor\n");
-	int i, lower_bound, upper_bound, colls_this_load;
-	float percent;
-	for (i=0; i<10; i++) {
-		// calculate stats for this load factor
-		colls_this_load = table->stats.coll.colls_by_load[i];
-		lower_bound = i * 10;
-		upper_bound = (i + 1) * 10;
-		// avoid 0 division
-		if (total_colls > 0) {
-			percent = colls_this_load * 100.0 / total_colls;
-		} else percent = 0.0;
-
-		printf("    %d%% - %d%%: %d (%.2f%%)\n",
-			lower_bound, upper_bound, colls_this_load, percent);
-	}
+	print_collisions_stats(table);
 
 	// print infomation about average probe sequence length
-	int probes_this_load, nkeys_this_load;
-	float avg_probe;
-
-	printf("\nAverage probe sequence length when load factor is\n");
-	for (i=0; i<10; i++) {
-		// calculate stats for this load factor
-		lower_bound = i * 10;
-		upper_bound = (i + 1) * 10;
-		probes_this_load = table->stats.probes.nprobes_by_load[i];
-		nkeys_this_load = table->stats.probes.nkeys_by_load[i];
-		// avoid 0 division
-		if (nkeys_this_load > 0) {
-			avg_probe = probes_this_load * 1.0 / nkeys_this_load;
-		} else {
-			avg_probe = 0.0;
-		}
-
-		printf("    %d%% - %d%%: %.2f\n",
-			lower_bound, upper_bound, avg_probe);
-	}
-
-	printf("--- end stats ---\n");
+	print_probe_stats(table);
 }
