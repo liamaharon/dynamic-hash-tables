@@ -15,7 +15,8 @@
 // how many cells to advance at a time while looking for a free slot
 #define STEP_SIZE 1
 // how many slots we want to split our load factor into in our stats arrays
-#define NUM_LOAD_FACTOR_SLOTS 20
+// higher number means more specific stats output
+#define NUM_LOAD_FACTOR_SLOTS 50
 
 
 // helper structure to store statistics gathered
@@ -76,7 +77,7 @@ static void initialise_stats(LinearHashTable *table) {
 
 	// set everything to 0
 	int i;
-	for (i = 0; i < 10; i++) {
+	for (i = 0; i < NUM_LOAD_FACTOR_SLOTS; i++) {
 		table->stats.nkeys_by_load[i] = 0;
 		table->stats.ncolls_by_load[i] = 0;
 		table->stats.nprobes_by_load[i] = 0;
@@ -94,6 +95,7 @@ static void double_table(LinearHashTable *table) {
 	int oldsize = table->size;
 
 	initialise_table(table, table->size * 2);
+	initialise_stats(table);
 
 	int i;
 	for (i = 0; i < oldsize; i++) {
@@ -112,8 +114,8 @@ static void double_table(LinearHashTable *table) {
 static int get_stats_index(float load_factor) {
 	int index;
 	// set the step size
-	float step_size = 100.0 / NUM_LOAD_FACTOR_SLOTS;
-	float cur_chk = step_size;
+	int step_size = 100 / NUM_LOAD_FACTOR_SLOTS;
+	int cur_chk = step_size;
 	// keep increasing the max load factor that would return as we increase
 	// index. when cur_check becomes > load factor we know we've incremented
 	// index the right amount of times to insert into it.
@@ -121,13 +123,23 @@ static int get_stats_index(float load_factor) {
 		if (load_factor <= cur_chk) return index;
 		cur_chk += step_size;
 	}
+	// should never get to here
+	assert(false && "make sure NUM_LOAD_FACTOR_SLOTS divides evently into 100");
 	return -1;
 }
 
 
 // updates the statistics of the table
-static void update_table_stats(LinearHashTable *table, int steps, bool coll) {
+static void update_table_stats(LinearHashTable *table, int steps) {
 	assert(table);
+	bool collision;
+
+	// check if there was a collision
+	if (steps > 0) {
+		collision = true;
+	} else {
+		collision = false;
+	}
 
 	// calculate the load factor at the time of collision
 	float load_factor = table->load * 100.0 / table->size;
@@ -136,7 +148,7 @@ static void update_table_stats(LinearHashTable *table, int steps, bool coll) {
 	int index = get_stats_index(load_factor);
 
 	// if there's been a collision mark where it was
-	if (coll) table->stats.ncolls_by_load[index]++;
+	if (collision) table->stats.ncolls_by_load[index]++;
 
 	// increment how many probes it took to insert the key
 	table->stats.nprobes_by_load[index] += steps;
@@ -242,7 +254,6 @@ void free_linear_hash_table(LinearHashTable *table) {
 // returns true if insertion succeeds, false if it was already in there
 bool linear_hash_table_insert(LinearHashTable *table, int64 key) {
 	assert(table != NULL);
-	bool collision=false;
 
 	// need to count our steps to make sure we recognise when the table is full
 	int steps = 0;
@@ -258,11 +269,7 @@ bool linear_hash_table_insert(LinearHashTable *table, int64 key) {
 			return false;
 		}
 
-		// mark that there has been at least 1 collision when hashing this key
-		collision = true;
-
 		// else, keep stepping through the table looking for a free slot
-
 		h = (h + STEP_SIZE) % table->size;
 		steps++;
 	}
@@ -280,7 +287,7 @@ bool linear_hash_table_insert(LinearHashTable *table, int64 key) {
 		table->inuse[h] = true;
 		table->load++;
 		// update table stats before returning
-		update_table_stats(table, steps, collision);
+		update_table_stats(table, steps);
 		return true;
 	}
 }
