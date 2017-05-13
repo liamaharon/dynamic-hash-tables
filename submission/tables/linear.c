@@ -8,19 +8,41 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>  // for memset
 
 #include "linear.h"
 
 // how many cells to advance at a time while looking for a free slot
 #define STEP_SIZE 1
 
+// helper struct to store statistics about collisions
+typedef struct {
+	// records the amt of keys which do not hash straight to their address in
+	// the table over a range of load factors. index 0 load factor 0-10%
+	// index 1 10-20% etc
+	int nkey_coll_by_load[9];
+	// amt of keys which do not hash straight to
+	// their address in the table
+	int nkeys_with_coll;
+} Collisions;
+
+// helper struct to store statistics about probe sequence
+typedef struct {
+	// records total probes made while inserting a key while table is under
+	// a certian load factor. index 0 load factor 0-10%, index 1 load factor
+	//  10-20% etc
+	int nprobes_by_load[9];
+	// records total number of keys that have inserted under load range, split
+	// into 10% intervals same as 'total_probes_by_load'
+	int nkeys_by_load[9];
+
+} Probes;
+
 // helper structure to store statistics gathered
 typedef struct stats {
-	int ncollisions;	// how many distinct buckets does the table point to
-	int nprobes;		// how many keys are being stored in the table
-	int failed_checks;  // cumulative sum of the number of slots checked before
-						// a key is inserted into a free space.
-	int load;		    // number of keys in the table right now
+	Collisions coll;  // infomation about collisions during insersion
+	Probes probes;    // infomation about the probes required to insert
+	int load;		  // number of keys in the table right now
 } Stats;
 
 // a hash table is an array of slots holding keys, along with a parallel array
@@ -56,9 +78,17 @@ static void initialise_table(LinearHashTable *table, int size) {
 	table->size = size;
 
 	table->stats.load = 0;
-	table->stats.ncollisions = 0;
-	table->stats.nprobes = 0;
-	table->stats.failed_checks = 0;
+
+	// initalise collision stats memory to 0
+	table->stats.coll.nkeys_with_coll = 0;
+	int *nkey_coll_by_load = table->stats.coll.nkey_coll_by_load;
+	memset(nkey_coll_by_load, 0, sizeof(*nkey_coll_by_load));
+
+	// initalise probe stats memory to 0
+	int *nprobes_by_load = table->stats.probes.nprobes_by_load;
+	int *nkeys_by_load = table->stats.probes.nkeys_by_load;
+	memset(nprobes_by_load, 0, sizeof(*nprobes_by_load));
+	memset(nkeys_by_load, 0, sizeof(*nkeys_by_load));
 }
 
 
@@ -80,6 +110,56 @@ static void double_table(LinearHashTable *table) {
 
 	free(oldslots);
 	free(oldinuse);
+}
+
+// update statistics about when collisions are likely to occur in the table
+static void update_collision_stats(LinearHashTable *table) {
+	assert(table);
+	int index;
+
+	// calculate the load factor at the time of collision
+	float load_factor = table->stats.load * 100.0 / table->size;
+
+	// get index that needs updating
+	if (load_factor <= 10.0) index = 0;
+	else if (load_factor <= 20.0) index = 1;
+	else if (load_factor <= 30.0) index = 2;
+	else if (load_factor <= 40.0) index = 3;
+	else if (load_factor <= 50.0) index = 4;
+	else if (load_factor <= 60.0) index = 5;
+	else if (load_factor <= 70.0) index = 6;
+	else if (load_factor <= 80.0) index = 7;
+	else if (load_factor <= 90.0) index = 8;
+	else index = 9;
+
+	// increment overall keys with at least 1 collision during insersion
+	table->stats.coll.nkeys_with_coll++;
+	// update collisions stats
+	table->stats.coll.nkey_coll_by_load[index]++;
+}
+
+static void update_probe_stats(LinearHashTable *table, int steps) {
+	assert(table);
+	int index;
+
+	// calculate the load factor at the time of collision
+	float load_factor = table->stats.load * 100.0 / table->size;
+
+	// get index that needs updating
+	if (load_factor <= 10.0) index = 0;
+	else if (load_factor <= 20.0) index = 1;
+	else if (load_factor <= 30.0) index = 2;
+	else if (load_factor <= 40.0) index = 3;
+	else if (load_factor <= 50.0) index = 4;
+	else if (load_factor <= 60.0) index = 5;
+	else if (load_factor <= 70.0) index = 6;
+	else if (load_factor <= 80.0) index = 7;
+	else if (load_factor <= 90.0) index = 8;
+	else index = 9;
+
+	// update probes stats
+	table->stats.probes.nkeys_by_load[index]++;
+	table->stats.probes.nprobes_by_load[index] += steps;
 }
 
 
@@ -116,6 +196,7 @@ void free_linear_hash_table(LinearHashTable *table) {
 // returns true if insertion succeeds, false if it was already in there
 bool linear_hash_table_insert(LinearHashTable *table, int64 key) {
 	assert(table != NULL);
+	bool collision=false;
 
 	// need to count our steps to make sure we recognise when the table is full
 	int steps = 0;
@@ -130,15 +211,12 @@ bool linear_hash_table_insert(LinearHashTable *table, int64 key) {
 			// this key already exists in the table! no need to insert
 			return false;
 		}
-// //////////////////NEED TO FIX THIS
-		// record a failed check
-		table->stats.failed_checks++;
 
-		// mark that there is a collision when hashing this key
-		bool collision = true;
-// //////////////////NEED TO FIX THIS
+		// mark that there has been at least 1 collision when hashing this key
+		collision = true;
 
 		// else, keep stepping through the table looking for a free slot
+
 		h = (h + STEP_SIZE) % table->size;
 		steps++;
 	}
@@ -154,8 +232,9 @@ bool linear_hash_table_insert(LinearHashTable *table, int64 key) {
 		// otherwise, we have found a free slot! insert this key right here
 		table->slots[h] = key;
 		table->inuse[h] = true;
-		table->load++;
-		if (collision) table->stats.ncollisions++;
+		table->stats.load++;
+		if (collision) update_collision_stats(table);
+		update_probe_stats(table, steps);
 		return true;
 	}
 }
@@ -227,8 +306,8 @@ void linear_hash_table_stats(LinearHashTable *table) {
 
 	// print some information about the table
 	printf("current size: %d slots\n", table->size);
-	printf("current load: %d items\n", table->load);
-	printf(" load factor: %.3f%%\n", table->load * 100.0 / table->size);
+	printf("current load: %d items\n", table->stats.load);
+	printf(" load factor: %.3f%%\n", table->stats.load * 100.0 / table->size);
 	printf("   step size: %d slots\n", STEP_SIZE);
 
 	printf("--- end stats ---\n");
