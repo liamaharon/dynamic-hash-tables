@@ -22,7 +22,7 @@ typedef struct {
 	// records what load the table was under when at least 1 collision occured
 	// during insersion. index 0: load factor 0-10%, index 1: load_factor
 	// 10-20%, ..., index 9: load_factor 90-100%
-	int colls_by_load[9];
+	int colls_by_load[10];
 } Collisions;
 
 // helper struct to store statistics about probe sequence
@@ -30,17 +30,16 @@ typedef struct {
 	// records total probes made while inserting a key while table is under
 	// a certian load factor. indexes correspond to same load factors in
 	// 'colls_by_load'
-	int nprobes_by_load[9];
+	int nprobes_by_load[10];
 	// records total number of keys that have inserted under load range, split
 	// into 10% intervals same as 'colls_by_load'
-	int nkeys_by_load[9];
+	int nkeys_by_load[10];
 } Probes;
 
 // helper structure to store statistics gathered
 typedef struct stats {
 	Collisions coll;  // infomation about collisions during insersion
 	Probes probes;    // infomation about the probes required to insert
-	int load;		  // number of keys in the table right now
 } Stats;
 
 // a hash table is an array of slots holding keys, along with a parallel array
@@ -51,6 +50,7 @@ struct linear_table {
 	int64 *slots;	// array of slots holding keys
 	bool  *inuse;	// is this slot in use or not?
 	int size;		// the size of both of these arrays right now
+	int load;		  // number of keys in the table right now
 	Stats stats;	// collection of statistics about this hash table
 };
 
@@ -75,18 +75,20 @@ static void initialise_table(LinearHashTable *table, int size) {
 
 	table->size = size;
 
-	table->stats.load = 0;
+	table->load = 0;
+}
 
-	// initalise collision stats memory to 0
+// set up the internals of the statistics of the table. putting in different
+// function as we don't want these to reset when table is doubled
+static void initialise_stats(LinearHashTable *table) {
+	// set everything to 0
 	table->stats.coll.total_colls = 0;
-	int *colls_by_load = table->stats.coll.colls_by_load;
-	memset(colls_by_load, 0, sizeof(*colls_by_load));
-
-	// initalise probe stats memory to 0
-	int *nprobes_by_load = table->stats.probes.nprobes_by_load;
-	int *nkeys_by_load = table->stats.probes.nkeys_by_load;
-	memset(nprobes_by_load, 0, sizeof(*nprobes_by_load));
-	memset(nkeys_by_load, 0, sizeof(*nkeys_by_load));
+	int i;
+	for (i = 0; i < 10; i++) {
+		table->stats.coll.colls_by_load[i] = 0;
+		table->stats.probes.nprobes_by_load[i] = 0;
+		table->stats.probes.nkeys_by_load[i] = 0;
+	}
 }
 
 
@@ -131,7 +133,7 @@ static void update_collision_stats(LinearHashTable *table) {
 	assert(table);
 
 	// calculate the load factor at the time of collision
-	float load_factor = table->stats.load * 100.0 / table->size;
+	float load_factor = table->load * 100.0 / table->size;
 
 	// get index that needs updating
 	int index = get_stats_index(load_factor);
@@ -146,7 +148,7 @@ static void update_probe_stats(LinearHashTable *table, int steps) {
 	assert(table);
 
 	// calculate the load factor at the time of collision
-	float load_factor = table->stats.load * 100.0 / table->size;
+	float load_factor = table->load * 100.0 / table->size;
 
 	// get index that needs updating
 	int index = get_stats_index(load_factor);
@@ -169,6 +171,8 @@ LinearHashTable *new_linear_hash_table(int size) {
 
 	// set up the internals of the table struct with arrays of size 'size'
 	initialise_table(table, size);
+	// set up the stats of the table
+	initialise_stats(table);
 
 	return table;
 }
@@ -227,7 +231,7 @@ bool linear_hash_table_insert(LinearHashTable *table, int64 key) {
 		// otherwise, we have found a free slot! insert this key right here
 		table->slots[h] = key;
 		table->inuse[h] = true;
-		table->stats.load++;
+		table->load++;
 		if (collision) update_collision_stats(table);
 		update_probe_stats(table, steps);
 		return true;
@@ -301,8 +305,8 @@ void linear_hash_table_stats(LinearHashTable *table) {
 
 	// print some information about the table
 	printf("current size: %d slots\n", table->size);
-	printf("current load: %d items\n", table->stats.load);
-	printf(" load factor: %.3f%%\n", table->stats.load * 100.0 / table->size);
+	printf("current load: %d items\n", table->load);
+	printf(" load factor: %.3f%%\n", table->load * 100.0 / table->size);
 	printf("   step size: %d slots\n", STEP_SIZE);
 
 	// print infomation about collisions
