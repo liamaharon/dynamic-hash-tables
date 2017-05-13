@@ -132,14 +132,10 @@ static int get_stats_index(float load_factor) {
 // updates the statistics of the table
 static void update_table_stats(LinearHashTable *table, int steps) {
 	assert(table);
-	bool collision;
+	bool collision=false;
 
 	// check if there was a collision
-	if (steps > 0) {
-		collision = true;
-	} else {
-		collision = false;
-	}
+	if (steps > 0) collision = true;
 
 	// calculate the load factor at the time of collision
 	float load_factor = table->load * 100.0 / table->size;
