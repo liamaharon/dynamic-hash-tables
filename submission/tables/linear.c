@@ -26,8 +26,8 @@ typedef struct stats {
 	// a certian load factor. indexes correspond to same load factors in
 	// 'ncolls_by_load'
 	int nprobes_by_load[10];
-	// records total number of keys that have inserted under load range, split
-	// into 10% intervals same as 'ncolls_by_load'
+	// counts the number of times a key was inserted under particular load
+	// factor. array split the same way as 'ncolls_by_load'
 	int nkeys_by_load[10];
 } Stats;
 
@@ -68,8 +68,10 @@ static void initialise_table(LinearHashTable *table, int size) {
 }
 
 // set up the internals of the statistics of the table. putting in different
-// function as we don't want these to reset when table is doubled
+// function so it's not called when the table doubles
 static void initialise_stats(LinearHashTable *table) {
+	assert(table);
+
 	// set everything to 0
 	int i;
 	for (i = 0; i < 10; i++) {
@@ -83,6 +85,8 @@ static void initialise_stats(LinearHashTable *table) {
 // double the size of the internal table arrays and re-hash all
 // keys in the old tables
 static void double_table(LinearHashTable *table) {
+	assert(table);
+
 	int64 *oldslots = table->slots;
 	bool  *oldinuse = table->inuse;
 	int oldsize = table->size;
@@ -136,6 +140,7 @@ static void update_table_stats(LinearHashTable *table, int steps, bool coll) {
 	table->stats.nkeys_by_load[index]++;
 }
 
+
 // print infomation about collisions
 static void print_collisions_stats(LinearHashTable *table) {
 	assert(table);
@@ -154,6 +159,7 @@ static void print_collisions_stats(LinearHashTable *table) {
 			percent = colls_this_load * 100.0 / nkeys_this_load;
 		} else percent = 0.0;
 
+		// print collision count and chance
 		printf("    %d%% - %d%%: %d (%.2f%% chance)\n",
 			lower_bound, upper_bound, colls_this_load, percent);
 	}
