@@ -313,7 +313,8 @@ void linear_hash_table_stats(LinearHashTable *table) {
 
 	int total_colls = table->stats.coll.total_colls;
 
-	printf("Total collisions: %d\n", total_colls);
+	printf("\nTotal collisions: %d\n", total_colls);
+	printf("Collisions when load factor\n");
 	int i, lower_bound, upper_bound, colls_this_load;
 	float percent;
 	for (i=0; i<10; i++) {
@@ -326,8 +327,8 @@ void linear_hash_table_stats(LinearHashTable *table) {
 			percent = colls_this_load * 100.0 / total_colls;
 		} else percent = 0.0;
 
-		printf("    Collsions when load factor %d%% - %d%%: %d (%.2f%%)\n",
-							lower_bound, upper_bound, colls_this_load, percent);
+		printf("    %d%% - %d%%: %d (%.2f%%)\n",
+			lower_bound, upper_bound, colls_this_load, percent);
 
 
 	}
