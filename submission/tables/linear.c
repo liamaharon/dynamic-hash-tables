@@ -14,21 +14,23 @@
 
 // how many cells to advance at a time while looking for a free slot
 #define STEP_SIZE 1
+// how many slots we want to split our load factor into in our stats arrays
+#define NUM_LOAD_FACTOR_SLOTS 20
 
 
 // helper structure to store statistics gathered
 typedef struct stats {
 	// records what load the table was under when at least 1 collision occured
-	// during insersion. index 0: load factor 0-10%, index 1: load_factor
-	// 10-20%, ..., index 9: load_factor 90-100%
-	int ncolls_by_load[10];
+	// during insersion. index 0: load factor 0-5%, index 1: load_factor
+	// 5-10%, ..., index 9: load_factor 95-100%
+	int ncolls_by_load[NUM_LOAD_FACTOR_SLOTS];
 	// records total probes made while inserting a key while table is under
 	// a certian load factor. indexes correspond to same load factors in
 	// 'ncolls_by_load'
-	int nprobes_by_load[10];
+	int nprobes_by_load[NUM_LOAD_FACTOR_SLOTS];
 	// counts the number of times a key was inserted under particular load
 	// factor. array split the same way as 'ncolls_by_load'
-	int nkeys_by_load[10];
+	int nkeys_by_load[NUM_LOAD_FACTOR_SLOTS];
 } Stats;
 
 // a hash table is an array of slots holding keys, along with a parallel array
@@ -105,18 +107,21 @@ static void double_table(LinearHashTable *table) {
 }
 
 
-// gets the index that corresponds to a load factor in our stats arrays
+// gets the index that corresponds to the slot in our stats array for the
+// load factor input
 static int get_stats_index(float load_factor) {
-	if (load_factor <= 10.0) return 0;
-	else if (load_factor <= 20.0) return 1;
-	else if (load_factor <= 30.0) return 2;
-	else if (load_factor <= 40.0) return 3;
-	else if (load_factor <= 50.0) return 4;
-	else if (load_factor <= 60.0) return 5;
-	else if (load_factor <= 70.0) return 6;
-	else if (load_factor <= 80.0) return 7;
-	else if (load_factor <= 90.0) return 8;
-	else return 9;
+	int index;
+	// set the step size
+	float step_size = 100.0 / NUM_LOAD_FACTOR_SLOTS;
+	float cur_chk = step_size;
+	// keep increasing the max load factor that would return as we increase
+	// index. when cur_check becomes > load factor we know we've incremented
+	// index the right amount of times to insert into it.
+	for (index=0; index<NUM_LOAD_FACTOR_SLOTS; index++) {
+		if (load_factor <= cur_chk) return index;
+		cur_chk += step_size;
+	}
+	return -1;
 }
 
 
@@ -145,15 +150,20 @@ static void update_table_stats(LinearHashTable *table, int steps, bool coll) {
 static void print_collisions_stats(LinearHashTable *table) {
 	assert(table);
 
-	printf("\nCollision during insert when load factor is\n");
 	int i, lower_bound, upper_bound, colls_this_load, nkeys_this_load;
 	float percent;
-	for (i=0; i<10; i++) {
+
+	// calculate the percent size of each slot in the stats arrays
+	int percent_per_slot = 100 / NUM_LOAD_FACTOR_SLOTS;
+
+	printf("\nCollisions during insert when load factor is\n");
+	for (i=0; i<NUM_LOAD_FACTOR_SLOTS; i++) {
 		// calculate stats for this load factor
 		nkeys_this_load = table->stats.nkeys_by_load[i];
 		colls_this_load = table->stats.ncolls_by_load[i];
-		lower_bound = i * 10;
-		upper_bound = (i + 1) * 10;
+		// get the bounds of the current index
+		lower_bound = i * percent_per_slot;
+		upper_bound = (i + 1) * percent_per_slot;
 		// avoid 0 division
 		if (nkeys_this_load > 0) {
 			percent = colls_this_load * 100.0 / nkeys_this_load;
@@ -172,11 +182,14 @@ static void print_probe_stats(LinearHashTable *table) {
 	int i, lower_bound, upper_bound, probes_this_load, nkeys_this_load;
 	float avg_probe;
 
+	int percent_per_slot = 100 / NUM_LOAD_FACTOR_SLOTS;
+
 	printf("\nAverage probe sequence length when load factor is\n");
-	for (i=0; i<10; i++) {
+	for (i=0; i<NUM_LOAD_FACTOR_SLOTS; i++) {
 		// calculate stats for this load factor
-		lower_bound = i * 10;
-		upper_bound = (i + 1) * 10;
+		// get the bounds of the current index
+		lower_bound = i * percent_per_slot;
+		upper_bound = (i + 1) * percent_per_slot;
 		probes_this_load = table->stats.nprobes_by_load[i];
 		nkeys_this_load = table->stats.nkeys_by_load[i];
 		// avoid 0 division
