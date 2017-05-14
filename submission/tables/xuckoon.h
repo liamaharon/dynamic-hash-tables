@@ -17,7 +17,7 @@
 typedef struct xuckoon_table XuckoonHashTable;
 
 // initialise an extendible cuckoo hash table
-XuckoonHashTable *new_xuckoon_hash_table();
+XuckoonHashTable *new_xuckoon_hash_table(int bucketsize);
 
 // free all memory associated with 'table'
 void free_xuckoon_hash_table(XuckoonHashTable *table);

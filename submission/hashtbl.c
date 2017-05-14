@@ -84,7 +84,7 @@ HashTable *new_hash_table(TableType type, int size) {
 			table->table = new_xuckoo_hash_table();
 			break;
 		case XUCKOON:
-			table->table = new_xuckoon_hash_table();
+			table->table = new_xuckoon_hash_table(size);
 			break;
 		default:
 			// no such table type? error. release memory and return NULL
