@@ -30,6 +30,12 @@ typedef struct xtndbln_bucket {
 	int64 *keys;	// the keys stored in this bucket
 } Bucket;
 
+// helper structure to store statistics gathered
+typedef struct stats {
+	int nbuckets;	// how many distinct buckets does the table point to
+	int nkeys;		// how many keys are being stored in the table
+} Stats;
+
 // an inner table is an extendible hash table with an array of slots pointing
 // to buckets holding up to 1 key, along with some information about the number
 // of hash value bits to use for addressing
@@ -37,9 +43,8 @@ typedef struct inner_table {
 	Bucket **buckets;	// array of pointers to buckets
 	int size;			// how many entries in the table of pointers (2^depth)
 	int depth;			// how many bits of the hash value to use (log2(size))
-	int nkeys;			// how many keys are being stored in the table
-	int nbuckets;		// how many buckets are being stored in the table
 	int bucketsize;
+	Stats stats;
 } InnerTable;
 
 // a xuckoo hash table is just two inner tables for storing inserted keys
@@ -144,7 +149,7 @@ static void split_bucket(InnerTable *inner_table, int address, int table_num) {
 	// new bucket's first address will be a 1 bit plus the old first address
 	int new_first_address = 1 << depth | first_address;
 	Bucket *newbucket = new_bucket(new_first_address, new_depth, bucketsize);
-	inner_table->nbuckets++;
+	inner_table->stats.nbuckets++;
 
 	// THIRD,
 	// redirect every second address pointing to this bucket to the new bucket
@@ -203,6 +208,9 @@ static InnerTable *new_inner_table(int bucketsize) {
 	inner_table->buckets = malloc(sizeof *inner_table->buckets);
 	assert(inner_table->buckets);
 	inner_table->buckets[0] = new_bucket(0, 0, bucketsize);
+
+	inner_table->stats.nbuckets = 1;
+	inner_table->stats.nkeys = 0;
 
 	return inner_table;
 }
@@ -265,7 +273,7 @@ bool xuckoon_hash_table_insert(XuckoonHashTable *table, int64 key) {
 	// choose table 2 as first to try if it has less keys than table 1,
 	// else choose table 1 as first table to try
 	int cur_table_num;
-	if (table->table2->nkeys < table->table1->nkeys) {
+	if (table->table2->stats.nkeys < table->table1->stats.nkeys) {
 		cur_table_num = 2;
 	} else {
 		cur_table_num = 1;
@@ -309,7 +317,7 @@ bool xuckoon_hash_table_insert(XuckoonHashTable *table, int64 key) {
 			// there's room, insert onto end of bucket
 			insert_index = cur_table->buckets[address]->nkeys;
 			cur_table->buckets[address]->nkeys++;
-			cur_table->nkeys++;
+			cur_table->stats.nkeys++;
 			// set loop to terminate at the end of this iteration
 			key_to_insert = false;
 		}
@@ -427,33 +435,41 @@ void xuckoon_hash_table_stats(XuckoonHashTable *table) {
 	InnerTable *table2 = table->table2;
 
 	// compute some stats
-	int total_keys = table1->nkeys + table2->nkeys;
-	int total_buckets = table1->nbuckets + table2->nbuckets;
-	float t1_load_factor = table1->nbuckets * 100.0 / table1->size;
-	float t2_load_factor = table2->nbuckets * 100.0 / table2->size;
+	// avoid 0 division when there are 0 keys in the table
+	int total_keys;
+	if (total_keys = table1->stats.nkeys + table2->stats.nkeys > 0) {
+		int total_keys = total_keys = table1->stats.nkeys + table2->stats.nkeys;
+	} else {
+		total_keys = 0;
+	}
+
+	int total_buckets = table1->stats.nbuckets + table2->stats.nbuckets;
+
+	float t1_load_factor = table1->stats.nbuckets * 100.0 / table1->size;
+	float t2_load_factor = table2->stats.nbuckets * 100.0 / table2->size;
 	// calculate the % of keys and buckets each table holds
-	float t1_keyp = table1->nkeys * 100.0 / total_keys;
-	float t2_keyp = table2->nkeys * 100.0 / total_keys;
-	float t1_bucketp = table1->nbuckets * 100.0 / total_buckets;
-	float t2_bucketp = table2->nbuckets * 100.0 / total_buckets;
+	float t1_keyp = table1->stats.nkeys * 100.0 / total_keys;
+	float t2_keyp = table2->stats.nkeys * 100.0 / total_keys;
+	float t1_bucketp = table1->stats.nbuckets * 100.0 / total_buckets;
+	float t2_bucketp = table2->stats.nbuckets * 100.0 / total_buckets;
 
 	printf("--- table stats ---\n");
 
 	// print some stats about state of the table
 	printf("table 1:\n");
 	printf("    %d slots\n", table1->size);
-	printf("    %d keys\n", table1->nkeys);
-	printf("    %d buckets\n", table1->nbuckets);
+	printf("    %d keys\n", table1->stats.nkeys);
+	printf("    %d buckets\n", table1->stats.nbuckets);
 	printf("    %.1f%% of all keys\n", t1_keyp);
 	printf("    %.1f%% of all buckets\n", t1_bucketp);
-	printf("    load factor of %.3f%% (nbuckets/slots)\n", t1_load_factor);
+	printf("    load factor of %.3f%% (nbuckets/nslots)\n", t1_load_factor);
 	printf("table 2:\n");
 	printf("    %d slots\n", table2->size);
-	printf("    %d keys\n", table2->nkeys);
-	printf("    %d buckets\n", table2->nbuckets);
+	printf("    %d keys\n", table2->stats.nkeys);
+	printf("    %d buckets\n", table2->stats.nbuckets);
 	printf("    %.1f%% of all keys\n", t2_keyp);
 	printf("    %.1f%% of all buckets\n", t2_bucketp);
-	printf("    load factor of %.3f%% (nbuckets/slots)\n", t2_load_factor);
+	printf("    load factor of %.3f%% (nbuckets/nslots)\n", t2_load_factor);
 
 	// also calculate CPU usage in seconds and print this
 	float seconds = table->time * 1.0 / CLOCKS_PER_SEC;
