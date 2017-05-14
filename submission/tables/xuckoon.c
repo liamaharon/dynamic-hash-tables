@@ -289,10 +289,6 @@ bool xuckoon_hash_table_insert(XuckoonHashTable *table, int64 key) {
 		return false;
 	}
 
-	// count steps so we know when need to increase table size
-	float steps = 0.0;
-	int max_steps = (table->table1->size + table->table2->size) / 2;
-
 	// choose table 2 as first to try if it has less keys than table 1,
 	// else choose table 1 as first table to try
 	int cur_table_num;
@@ -318,12 +314,9 @@ bool xuckoon_hash_table_insert(XuckoonHashTable *table, int64 key) {
 		// get address of where key should sit in the table
 		address = rightmostnbits(cur_table->depth, hash);
 
-		// if been cuckooing too long need to split bucket, potentially
-		// doubling table size. make sure we split a bucket that is full
-		if (steps >= max_steps &&
-			cur_table->buckets[address]->nkeys == cur_table->bucketsize) {
+		// if hit a full bucket need to split it 
+		if (cur_table->buckets[address]->nkeys == cur_table->bucketsize) {
 			split_bucket(cur_table, address, cur_table_num);
-			max_steps = (table->table1->size + table->table2->size) / 2;
 			// recalculate address because we might now need more bits
 			address = rightmostnbits(cur_table->depth, hash);
 		}
@@ -353,10 +346,6 @@ bool xuckoon_hash_table_insert(XuckoonHashTable *table, int64 key) {
 
 		// alternate between inserting into table 1 and 2
 		cur_table_num = (cur_table_num == 1) ? 2: 1;
-
-		// increment step counter a half cycle (one full cycle is trying both
-		// tables)
-		steps += 0.5;
 	}
 	table->time += clock() - start_time;  // add time elapsed
 	return true;
