@@ -180,26 +180,6 @@ static InnerTable *new_inner_table() {
 	inner_table->nkeys = 0;
 
 	return inner_table;
- }
-
-
-/* * * *
- * all functions
- */
-
-// initialise an extendible cuckoo hash table
-XuckooHashTable *new_xuckoo_hash_table() {
-	// create new table
-	XuckooHashTable *table = malloc(sizeof *table);
-	assert(table);
-
-	// create new inner tables
-	table->table1 = new_inner_table();
-	table->table2 = new_inner_table();
-
-	table->time = 0;
-
-	return table;
 }
 
 
@@ -222,6 +202,26 @@ static void free_inner_table(InnerTable *inner_table) {
 
 	// free the table struct itself
 	free(inner_table);
+}
+
+
+/* * * *
+ * all functions
+ */
+
+// initialise an extendible cuckoo hash table
+XuckooHashTable *new_xuckoo_hash_table() {
+	// create new table
+	XuckooHashTable *table = malloc(sizeof *table);
+	assert(table);
+
+	// create new inner tables
+	table->table1 = new_inner_table();
+	table->table2 = new_inner_table();
+
+	table->time = 0;
+
+	return table;
 }
 
 
