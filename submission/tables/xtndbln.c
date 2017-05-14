@@ -335,16 +335,19 @@ void xtndbln_hash_table_print(XtndblNHashTable *table) {
 void xtndbln_hash_table_stats(XtndblNHashTable *table) {
 	assert(table);
 
+	float load_factor = table->stats.nbuckets * 100.0 / table->size;
+
 	printf("--- table stats ---\n");
 
 	// print some stats about state of the table
 	printf("current table size: %d\n", table->size);
 	printf("    number of keys: %d\n", table->stats.nkeys);
-	printf(" number of buckets: %d\n", table->stats.nbuckets);
+	printf("    number of buckets: %d\n", table->stats.nbuckets);
+	printf("    load factor: %.2f%%\n", load_factor);
 
 	// also calculate CPU usage in seconds and print this
 	float seconds = table->stats.time * 1.0 / CLOCKS_PER_SEC;
-	printf("    CPU time spent: %.6f sec\n", seconds);
+	printf("CPU time spent: %.6f sec\n", seconds);
 
 	printf("--- end stats ---\n");
 }
