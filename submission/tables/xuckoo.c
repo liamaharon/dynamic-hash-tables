@@ -293,7 +293,7 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 		address = rightmostnbits(cur_table->depth, hash);
 
 		// if been cuckooing too long need to split bucket, potentially
-		// doubling table size. make sure we split a bucket that has keys
+		// doubling table size. make sure we split on a bucket that has keys
 		if (steps >= max_steps && cur_table->buckets[address]->full) {
 			split_bucket(cur_table, address, cur_table_num);
 			max_steps = (table->table1->size + table->table2->size) / 2;
@@ -414,11 +414,9 @@ void xuckoo_hash_table_stats(XuckooHashTable *table) {
 
 	// compute some stats
 	// avoid 0 division when there are 0 keys in the table
-	int total_keys;
+	int total_keys = 0;
 	if (table1->stats.nkeys + table2->stats.nkeys > 0) {
 		total_keys = table1->stats.nkeys + table2->stats.nkeys;
-	} else {
-		total_keys = 0;
 	}
 
 	int total_buckets = table1->stats.nbuckets + table2->stats.nbuckets;
