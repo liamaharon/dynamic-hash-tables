@@ -273,7 +273,7 @@ bool xtndbln_hash_table_lookup(XtndblNHashTable *table, int64 key) {
 	if (table->buckets[address]->nkeys > 0) {
 		// search bucket
 		for (i=0; i<table->buckets[address]->nkeys; i++) {
-			// if found return record time and true
+			// if found record time and return true
 			if (table->buckets[address]->keys[i] == key) {
 				table->stats.time += clock() - start_time;
 				return true;
