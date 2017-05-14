@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <time.h>
-#include <string.h>
+#include <string.h>  // for memcpy
 
 #include "xtndbln.h"
 
@@ -189,7 +189,7 @@ XtndblNHashTable *new_xtndbln_hash_table(int bucketsize) {
 	table->size = 1;
 
 	table->bucketsize = bucketsize;
-	table->buckets = malloc((sizeof *table->buckets) * table->size);
+	table->buckets = malloc(sizeof *table->buckets);
 	assert(table->buckets);
 	table->buckets[0] = new_bucket(0, 0, bucketsize);
 
