@@ -66,6 +66,7 @@ static InnerTable *new_inner_table(int size) {
 // double the size of inner tables within table, and reinsert everything
 static void double_table(CuckooHashTable *table) {
 	assert(table);
+
 	// save pointer of old inner tables and old size
 	InnerTable *old_table1 = table->table1;
 	InnerTable *old_table2 = table->table2;
@@ -206,6 +207,7 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 // returns true if found, false if not
 bool cuckoo_hash_table_lookup(CuckooHashTable *table, int64 key) {
 	assert(table);
+
 	int start_time = clock(); // start timing
 	int h;
 
@@ -236,6 +238,7 @@ bool cuckoo_hash_table_lookup(CuckooHashTable *table, int64 key) {
 // print the contents of 'table' to stdout
 void cuckoo_hash_table_print(CuckooHashTable *table) {
 	assert(table);
+
 	printf("--- table size: %d\n", table->size);
 
 	// print header

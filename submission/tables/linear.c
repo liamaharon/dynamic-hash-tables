@@ -249,7 +249,7 @@ void free_linear_hash_table(LinearHashTable *table) {
 // insert 'key' into 'table', if it's not in there already
 // returns true if insertion succeeds, false if it was already in there
 bool linear_hash_table_insert(LinearHashTable *table, int64 key) {
-	assert(table != NULL);
+	assert(table);
 
 	// need to count our steps to make sure we recognise when the table is full
 	int steps = 0;
@@ -292,7 +292,7 @@ bool linear_hash_table_insert(LinearHashTable *table, int64 key) {
 // lookup whether 'key' is inside 'table'
 // returns true if found, false if not
 bool linear_hash_table_lookup(LinearHashTable *table, int64 key) {
-	assert(table != NULL);
+	assert(table);
 
 	// need to count our steps to make sure we recognise when the table is full
 	int steps = 0;
@@ -322,7 +322,7 @@ bool linear_hash_table_lookup(LinearHashTable *table, int64 key) {
 
 // print the contents of 'table' to stdout
 void linear_hash_table_print(LinearHashTable *table) {
-	assert(table != NULL);
+	assert(table);
 
 	printf("--- table size: %d\n", table->size);
 
@@ -350,7 +350,7 @@ void linear_hash_table_print(LinearHashTable *table) {
 
 // print some statistics about 'table' to stdout
 void linear_hash_table_stats(LinearHashTable *table) {
-	assert(table != NULL);
+	assert(table);
 	printf("--- table stats ---\n");
 
 	// print some information about the table

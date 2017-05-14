@@ -70,6 +70,8 @@ static Bucket *new_bucket(int first_address, int depth) {
 // double the table of bucket pointers, duplicating the bucket pointers in the
 // first half into the new second half of the table
 static void double_table(InnerTable *inner_table) {
+	assert(inner_table);
+
 	int size = inner_table->size * 2;
 	assert(size < MAX_TABLE_SIZE && "error: inner_table has grown too large!");
 
@@ -93,6 +95,8 @@ static void double_table(InnerTable *inner_table) {
 // inside the hash table previously
 // use 'xtndbl1_hash_table_insert()' instead for inserting new keys
 static void reinsert_key(InnerTable *inner_table, int64 key, int table_num) {
+	assert(inner_table);
+
 	// use correct hash function depending on which table we're inserting into
 	int hash = (table_num == 1) ? h1(key): h2(key);
 
@@ -105,6 +109,7 @@ static void reinsert_key(InnerTable *inner_table, int64 key, int table_num) {
 // split the bucket in 'table' table_num at address 'address', growing table
 // if necessary
 static void split_bucket(InnerTable *inner_table, int address, int table_num) {
+	assert(inner_table);
 
 	// FIRST,
 	// do we need to grow the table?
@@ -240,6 +245,7 @@ void free_xuckoo_hash_table(XuckooHashTable *table) {
 // returns true if insertion succeeds, false if it was already in there
 bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 	assert(table);
+
 	int start_time = clock();  // start timing
 	int hash, address;
 	int64 next_key;
@@ -323,6 +329,7 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 // returns true if found, false if not
 bool xuckoo_hash_table_lookup(XuckooHashTable *table, int64 key) {
 	assert(table);
+
 	int start_time = clock(); // start timing
 
 	// calculate the address for this key in table 1
@@ -355,7 +362,7 @@ bool xuckoo_hash_table_lookup(XuckooHashTable *table, int64 key) {
 
 // print the contents of 'table' to stdout
 void xuckoo_hash_table_print(XuckooHashTable *table) {
-	assert(table != NULL);
+	assert(table);
 
 	printf("--- table ---\n");
 

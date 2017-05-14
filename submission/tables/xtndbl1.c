@@ -17,7 +17,7 @@
 #define rightmostnbits(n, x) (x) & ((1 << (n)) - 1)
 
 // a bucket stores a single key (full=true) or is empty (full=false)
-// it also knows how many bits are shared between possible keys, and the first 
+// it also knows how many bits are shared between possible keys, and the first
 // table address that references it
 typedef struct bucket {
 	int id;		// a unique id for this bucket, equal to the first address
@@ -65,6 +65,8 @@ static Bucket *new_bucket(int first_address, int depth) {
 // double the table of bucket pointers, duplicating the bucket pointers in the
 // first half into the new second half of the table
 static void double_table(Xtndbl1HashTable *table) {
+	assert(table);
+
 	int size = table->size * 2;
 	assert(size < MAX_TABLE_SIZE && "error: table has grown too large!");
 
@@ -86,6 +88,8 @@ static void double_table(Xtndbl1HashTable *table) {
 // inside the hash table previously
 // use 'xtndbl1_hash_table_insert()' instead for inserting new keys
 static void reinsert_key(Xtndbl1HashTable *table, int64 key) {
+	assert(table);
+
 	int address = rightmostnbits(table->depth, h1(key));
 	table->buckets[address]->key = key;
 	table->buckets[address]->full = true;
@@ -93,7 +97,8 @@ static void reinsert_key(Xtndbl1HashTable *table, int64 key) {
 
 // split the bucket in 'table' at address 'address', growing table if necessary
 static void split_bucket(Xtndbl1HashTable *table, int address) {
-	
+	assert(table);
+
 	// FIRST,
 	// do we need to grow the table?
 	if (table->buckets[address]->depth == table->depth) {
@@ -116,7 +121,7 @@ static void split_bucket(Xtndbl1HashTable *table, int address) {
 	int new_first_address = 1 << depth | first_address;
 	Bucket *newbucket = new_bucket(new_first_address, new_depth);
 	table->stats.nbuckets++;
-	
+
 	// THIRD,
 	// redirect every second address pointing to this bucket to the new bucket
 	// construct addresses by joining a bit 'prefix' and a bit 'suffix'
@@ -133,7 +138,7 @@ static void split_bucket(Xtndbl1HashTable *table, int address) {
 
 	int prefix;
 	for (prefix = 0; prefix < maxprefix; prefix++) {
-		
+
 		// construct address by joining this prefix and the suffix
 		int a = (prefix << new_depth) | suffix;
 
@@ -142,7 +147,7 @@ static void split_bucket(Xtndbl1HashTable *table, int address) {
 	}
 
 	// FINALLY,
-	// filter the key from the old bucket into its rightful place in the new 
+	// filter the key from the old bucket into its rightful place in the new
 	// table (which may be the old bucket, or may be the new bucket)
 
 	// remove and reinsert the key
@@ -191,7 +196,7 @@ void free_xtndbl1_hash_table(Xtndbl1HashTable *table) {
 
 	// free the array of bucket pointers
 	free(table->buckets);
-	
+
 	// free the table struct itself
 	free(table);
 }
@@ -201,12 +206,13 @@ void free_xtndbl1_hash_table(Xtndbl1HashTable *table) {
 // returns true if insertion succeeds, false if it was already in there
 bool xtndbl1_hash_table_insert(Xtndbl1HashTable *table, int64 key) {
 	assert(table);
+
 	int start_time = clock(); // start timing
-	
+
 	// calculate table address
 	int hash = h1(key);
 	int address = rightmostnbits(table->depth, hash);
-	
+
 	// is this key already there?
 	if (table->buckets[address]->full && table->buckets[address]->key == key) {
 		table->stats.time += clock() - start_time; // add time elapsed
@@ -236,11 +242,12 @@ bool xtndbl1_hash_table_insert(Xtndbl1HashTable *table, int64 key) {
 // returns true if found, false if not
 bool xtndbl1_hash_table_lookup(Xtndbl1HashTable *table, int64 key) {
 	assert(table);
+
 	int start_time = clock(); // start timing
 
 	// calculate table address for this key
 	int address = rightmostnbits(table->depth, h1(key));
-	
+
 	// look for the key in that bucket (unless it's empty)
 	bool found = false;
 	if (table->buckets[address]->full) {
@@ -257,12 +264,13 @@ bool xtndbl1_hash_table_lookup(Xtndbl1HashTable *table, int64 key) {
 // print the contents of 'table' to stdout
 void xtndbl1_hash_table_print(Xtndbl1HashTable *table) {
 	assert(table);
+	
 	printf("--- table size: %d\n", table->size);
 
 	// print header
 	printf("  table:               buckets:\n");
 	printf("  address | bucketid   bucketid [key]\n");
-	
+
 	// print table and buckets
 	int i;
 	for (i = 0; i < table->size; i++) {
@@ -301,6 +309,6 @@ void xtndbl1_hash_table_stats(Xtndbl1HashTable *table) {
 	// also calculate CPU usage in seconds and print this
 	float seconds = table->stats.time * 1.0 / CLOCKS_PER_SEC;
 	printf("    CPU time spent: %.6f sec\n", seconds);
-	
+
 	printf("--- end stats ---\n");
 }

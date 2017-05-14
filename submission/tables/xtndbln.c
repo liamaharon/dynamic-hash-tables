@@ -72,6 +72,8 @@ struct xtndbln_table {
  // double the table of bucket pointers, duplicating the bucket pointers in the
  // first half into the new second half of the table
 static void double_table(XtndblNHashTable *table) {
+	assert(table);
+
 	int size = table->size * 2;
 	assert(size < MAX_TABLE_SIZE && "error: table has grown too large!");
 
@@ -94,6 +96,8 @@ static void double_table(XtndblNHashTable *table) {
 // inside the hash table previously
 // use 'xtndbl1_hash_table_insert()' instead for inserting new keys
 static void reinsert_key(XtndblNHashTable *table, int64 key) {
+	assert(table);
+
 	int address = rightmostnbits(table->depth, h1(key));
 
 	// point to insert into
@@ -230,6 +234,7 @@ void free_xtndbln_hash_table(XtndblNHashTable *table) {
 // returns true if insertion succeeds, false if it was already in there
 bool xtndbln_hash_table_insert(XtndblNHashTable *table, int64 key) {
 	assert(table);
+
 	int start_time = clock(); // start timing
 
 	// calculate table address
@@ -263,6 +268,7 @@ bool xtndbln_hash_table_insert(XtndblNHashTable *table, int64 key) {
 // returns true if found, false if not
 bool xtndbln_hash_table_lookup(XtndblNHashTable *table, int64 key) {
 	assert(table);
+
 	int start_time = clock(); // start timing
 	int i;
 
@@ -289,6 +295,7 @@ bool xtndbln_hash_table_lookup(XtndblNHashTable *table, int64 key) {
 // print the contents of 'table' to stdout
 void xtndbln_hash_table_print(XtndblNHashTable *table) {
 	assert(table);
+
 	printf("--- table size: %d\n", table->size);
 
 	// print header
