@@ -216,9 +216,27 @@ static InnerTable *new_inner_table(int bucketsize) {
 }
 
 // free all memory associated with the inner table
-// static void free_inner_table(InnerTable *inner_table) {
-//
-// }
+static void free_inner_table(InnerTable *inner_table) {
+	assert(inner_table);
+
+	// loop backwards through the array of pointers, freeing buckets only as we
+	// reach their first reference
+	// (if we loop through forwards, we wouldn't know which reference was last)
+	int i;
+	for (i = inner_table->size-1; i >= 0; i--) {
+		if (inner_table->buckets[i]->id == i) {
+			// free the keys in the bucket, then the bucket
+			free(inner_table->buckets[i]->keys);
+			free(inner_table->buckets[i]);
+		}
+	}
+
+	// free the array of bucket pointers
+	free(inner_table->buckets);
+
+	// free the table struct itself
+	free(inner_table);
+}
 
 /* * * *
  * all functions
@@ -247,7 +265,12 @@ XuckoonHashTable *new_xuckoon_hash_table(int bucketsize) {
 
 // free all memory associated with 'table'
 void free_xuckoon_hash_table(XuckoonHashTable *table) {
+	assert(table);
 
+	free_inner_table(table->table1);
+	free_inner_table(table->table2);
+
+	free(table);
 }
 
 
@@ -436,11 +459,9 @@ void xuckoon_hash_table_stats(XuckoonHashTable *table) {
 
 	// compute some stats
 	// avoid 0 division when there are 0 keys in the table
-	int total_keys;
-	if (total_keys = table1->stats.nkeys + table2->stats.nkeys > 0) {
-		int total_keys = total_keys = table1->stats.nkeys + table2->stats.nkeys;
-	} else {
-		total_keys = 0;
+	int total_keys = 0;
+	if (table1->stats.nkeys + table2->stats.nkeys > 0) {
+		total_keys = table1->stats.nkeys + table2->stats.nkeys;
 	}
 
 	int total_buckets = table1->stats.nbuckets + table2->stats.nbuckets;
