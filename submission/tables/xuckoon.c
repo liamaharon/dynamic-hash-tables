@@ -266,10 +266,9 @@ bool xuckoon_hash_table_insert(XuckoonHashTable *table, int64 key) {
 	}
 
 	InnerTable *cur_table;
-	// we're not using the -ive number space so a valid key will never be -1.
-	// we can set key to -1 at any time in the loop and be assured it will not
-	// run again
-	while (key != -1) {
+	bool key_to_insert=true;
+	// keep going until we mark that we don't have anymore keys to insert
+	while (key_to_insert) {
 		// setup values depending on table we're going to try to insert into
 		if (cur_table_num == 1) {
 			cur_table = table->table1;
@@ -305,8 +304,8 @@ bool xuckoon_hash_table_insert(XuckoonHashTable *table, int64 key) {
 			insert_index = cur_table->buckets[address]->nkeys;
 			cur_table->buckets[address]->nkeys++;
 			cur_table->nkeys++;
-			// set loop up to ternimate
-			next_key = -1;
+			// set loop to terminate at the end of this iteration
+			key_to_insert = false;
 		}
 
 		printf("key: %llu\n", key);
