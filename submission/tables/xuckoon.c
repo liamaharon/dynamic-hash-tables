@@ -290,7 +290,7 @@ bool xuckoon_hash_table_insert(XuckoonHashTable *table, int64 key) {
 	}
 
 	// count steps so we know when need to increase table size
-	int steps = 0;
+	float steps = 0.0;
 	int max_steps = (table->table1->size + table->table2->size) / 2;
 
 	// choose table 2 as first to try if it has less keys than table 1,
@@ -354,8 +354,9 @@ bool xuckoon_hash_table_insert(XuckoonHashTable *table, int64 key) {
 		// alternate between inserting into table 1 and 2
 		cur_table_num = (cur_table_num == 1) ? 2: 1;
 
-		// increment step counter
-		steps++;
+		// increment step counter a half cycle (one full cycle is trying both
+		// tables)
+		steps += 0.5;
 	}
 	table->time += clock() - start_time;  // add time elapsed
 	return true;
