@@ -112,6 +112,8 @@ CuckooHashTable *new_cuckoo_hash_table(int size) {
 	table->table1 = new_inner_table(size);
 	table->table2 = new_inner_table(size);
 
+	table->time = 0;
+
 	return table;
 }
 
@@ -293,6 +295,7 @@ void cuckoo_hash_table_stats(CuckooHashTable *table) {
 	printf("table 2:\n");
 	printf("    current load: %d items\n", table2->load);
 	printf("    load factor: %.3f%%\n", t2_load_factor);
+
 	// also calculate CPU usage in seconds and print this
 	float seconds = table->time * 1.0 / CLOCKS_PER_SEC;
 	printf("CPU time spent: %.6f sec\n", seconds);
