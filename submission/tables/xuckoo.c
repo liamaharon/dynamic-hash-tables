@@ -264,7 +264,10 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 	}
 
 	InnerTable *cur_table;
-	while (key) {
+	// we're not using the -ive number space so a valid key will never be -1.
+	// we can set key to -1 at any time in the loop and be assured it will not
+	// run again
+	while (key != -1) {
 		// setup values depending on table we're going to try to insert into
 		if (cur_table_num == 1) {
 			cur_table = table->table1;
@@ -292,7 +295,7 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 		} else {
 			cur_table->buckets[address]->full = true;
 			cur_table->nkeys++;
-			next_key = false;
+			next_key = -1;
 		}
 
 		// insert key into it's desired slot

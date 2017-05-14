@@ -46,8 +46,8 @@ typedef struct inner_table {
 struct xuckoon_table {
 	InnerTable *table1;
 	InnerTable *table2;
-	int time;            // how much CPU time has been used to insert/lookup keys
-					     // in this table
+	int time;          // how much CPU time has been used to insert/lookup keys
+					   // in this table
 };
 
 
@@ -266,7 +266,10 @@ bool xuckoon_hash_table_insert(XuckoonHashTable *table, int64 key) {
 	}
 
 	InnerTable *cur_table;
-	while (key) {
+	// we're not using the -ive number space so a valid key will never be -1.
+	// we can set key to -1 at any time in the loop and be assured it will not
+	// run again
+	while (key != -1) {
 		// setup values depending on table we're going to try to insert into
 		if (cur_table_num == 1) {
 			cur_table = table->table1;
@@ -302,9 +305,11 @@ bool xuckoon_hash_table_insert(XuckoonHashTable *table, int64 key) {
 			insert_index = cur_table->buckets[address]->nkeys;
 			cur_table->buckets[address]->nkeys++;
 			cur_table->nkeys++;
-			next_key = false;
+			// set loop up to ternimate
+			next_key = -1;
 		}
 
+		printf("key: %llu\n", key);
 		// insert key into it's desired slot
 		cur_table->buckets[address]->keys[insert_index] = key;
 

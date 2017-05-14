@@ -147,8 +147,10 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 	// keep track of which table we're inserting into
 	int cur_table_num = 1;
 
-	// while we have a key to hash keep going!
-	while (key) {
+	// we're not using the -ive number space so a valid key will never be -1.
+	// we can set key to -1 at any time in the loop and be assured it will not
+	// run again
+	while (key != -1) {
 		// if been cuckoo'ing too long need to double the size, then keep going
 		if (steps >= max_steps) {
 			// double table size and rehash everything
@@ -179,7 +181,7 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 		} else {
 			cur_table->inuse[h] = true;
 			cur_table->load += 1;
-			next_key = false;
+			next_key = -1;
 		}
 
 		// insert key into it's desired slot
