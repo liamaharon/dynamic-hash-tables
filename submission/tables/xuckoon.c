@@ -308,7 +308,6 @@ bool xuckoon_hash_table_insert(XuckoonHashTable *table, int64 key) {
 			key_to_insert = false;
 		}
 
-		printf("key: %llu\n", key);
 		// insert key into it's desired slot
 		cur_table->buckets[address]->keys[insert_index] = key;
 
