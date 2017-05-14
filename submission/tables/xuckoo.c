@@ -286,6 +286,8 @@ bool xuckoo_hash_table_insert(XuckooHashTable *table, int64 key) {
 		if (steps >= max_steps && cur_table->buckets[address]->full) {
 			split_bucket(cur_table, address, cur_table_num);
 			max_steps = (table->table1->size + table->table2->size) / 2;
+			// recalculate address because we might now need more bits
+			address = rightmostnbits(cur_table->depth, hash);
 		}
 
 		// if destination slot is occupied need save it's val before moving on
