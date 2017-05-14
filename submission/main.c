@@ -202,6 +202,8 @@ Options get_options(int argc, char** argv) {
 		fprintf(stderr,
 			" -t 2 or xtnbdln: n-key extendible hash table (part 2)\n");
 		fprintf(stderr, " -t 3 or xuckoo:  extendible cuckoo table (part 3)\n");
+		fprintf(stderr,
+			" -t xuckoon: multi-key extendible cuckoo table (bonus)\n");
 		valid = false;
 	}
 

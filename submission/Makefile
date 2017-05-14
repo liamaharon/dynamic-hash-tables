@@ -9,7 +9,7 @@ CC     = gcc
 CFLAGS = -Wall -Wno-format -std=c99
 EXE    = a2
 OBJ    = main.o inthash.o hashtbl.o tables/linear.o tables/cuckoo.o \
-		 tables/xtndbl1.o tables/xtndbln.o tables/xuckoo.o
+		 tables/xtndbl1.o tables/xtndbln.o tables/xuckoo.o tables/xuckoon.o
 #									add any new files here ^
 
 # MAIN PROGRAM
@@ -19,12 +19,13 @@ $(EXE): $(OBJ)
 
 main.o: inthash.h hashtbl.h
 hashtbl.o: inthash.h tables/linear.h tables/cuckoo.h tables/xtndbl1.h \
- tables/xtndbln.h tables/xuckoo.h
+ tables/xtndbln.h tables/xuckoo.h tables/xuckoon.h
 tables/linear.o: inthash.h
 tables/cuckoo.o: inthash.h
 tables/xtndbl1.o: inthash.h
 tables/xtndbln.o: inthash.h
 tables/xuckoo.o: inthash.h
+tables/xuckoon.o: inthash.h
 
 
 # COMMAND GENERATOR TARGETS
@@ -49,7 +50,7 @@ STUDENTNUM = STUDENT-NUMBER
 SUBMISSION = Makefile report.pdf main.c hashtbl.c hashtbl.h inthash.c inthash.h\
 	tables/linear.h  tables/linear.c  tables/cuckoo.h  tables/cuckoo.c  \
 	tables/xtndbl1.h tables/xtndbl1.c tables/xtndbln.h tables/xtndbln.c \
-	tables/xuckoo.h  tables/xuckoo.c
+	tables/xuckoo.h  tables/xuckoo.c tables/xuckoon.c tables/xuckoon.h
 #				add any new files here ^
 
 submission: $(SUBMISSION)
