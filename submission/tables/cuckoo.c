@@ -158,9 +158,6 @@ bool cuckoo_hash_table_insert(CuckooHashTable *table, int64 key) {
 			// double table size and rehash everything
 			double_table(table);
 			max_steps = (table->size) / 2;
-
-			// begin insersion into new table with table 1
-			cur_table_num = 1;
 		}
 
 		// get vals from table 1 or 2 depending on which one we are inserting
