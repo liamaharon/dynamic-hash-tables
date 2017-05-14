@@ -264,7 +264,7 @@ bool xtndbl1_hash_table_lookup(Xtndbl1HashTable *table, int64 key) {
 // print the contents of 'table' to stdout
 void xtndbl1_hash_table_print(Xtndbl1HashTable *table) {
 	assert(table);
-	
+
 	printf("--- table size: %d\n", table->size);
 
 	// print header
@@ -299,12 +299,16 @@ void xtndbl1_hash_table_print(Xtndbl1HashTable *table) {
 void xtndbl1_hash_table_stats(Xtndbl1HashTable *table) {
 	assert(table);
 
+	// compute some stats
+	float load_factor = table->stats.nkeys * 100.0 / table->size;
+
 	printf("--- table stats ---\n");
 
 	// print some stats about state of the table
 	printf("current table size: %d\n", table->size);
 	printf("    number of keys: %d\n", table->stats.nkeys);
-	printf(" number of buckets: %d\n", table->stats.nbuckets);
+	printf("    number of buckets: %d\n", table->stats.nbuckets);
+	printf("    load factor of %.3f%% (nkeys/size)\n", load_factor);
 
 	// also calculate CPU usage in seconds and print this
 	float seconds = table->stats.time * 1.0 / CLOCKS_PER_SEC;
